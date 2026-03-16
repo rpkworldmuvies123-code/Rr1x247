@@ -1,5 +1,53 @@
 bin/
 obj/
 /packages/
-riderModule.iml
+*.iml
 /_ReSharper.Caches/
+.env
+
+# --- JetBrains (Rider / DataGrip) ---
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/httpRequests
+.idea/**/aws.xml
+
+# Copilot / AI plugin local state
+.idea/**/copilot/
+.idea/**/copilot.xml
+.idea/**/github-copilot.xml
+.idea/**/ai-assistant/
+.idea/**/ai-assistant.xml
+.idea/**/copilot*.xml
+
+# DataGrip local datasource state
+.idea/**/dataSources/
+.idea/**/dataSources.xml
+.idea/**/datasources.xml
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+
+# Rider / .NET user + build artifacts
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+**/bin/
+**/obj/
+_ReSharper*/
+*.DotSettings.user
+
+# --- Docker local files ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+docker-compose.override.yml
+docker-data/
+volumes/

@@ -1,0 +1,40 @@
+﻿services:
+  mssql_db:
+    container_name: mssql_container
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PRODUCT_ID:-Developer}
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+    volumes:
+      - mssqlsystem:/var/opt/mssql
+    command: /opt/mssql/bin/sqlservr
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    networks:
+      - env_net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  geradordados:
+    image: geradordados
+    build:
+      context: .
+      dockerfile: GeradorDados/Dockerfile
+    networks:
+      - env_net
+    depends_on:
+      mssql_db:
+        condition: service_healthy
+
+networks:
+  env_net:
+    driver: bridge
+
+volumes:
+  mssqlsystem:
