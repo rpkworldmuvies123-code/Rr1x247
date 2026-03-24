@@ -52,6 +52,19 @@ Backup*/
 UpgradeLog*.XML
 UpgradeLog*.htm
 
+# --- Visual Studio ---
+.vs/
+*.VC.db
+*.VC.opendb
+*.dbmdl
+*.psess
+*.vsp
+*.vspx
+
+<<<<<<< HEAD
+# --- Build outputs / packages / coverage ---
+=======
+>>>>>>> origin/master
 bin/
 obj/
 **/bin/
@@ -67,7 +80,7 @@ coverage/
 # --- Project local config/secrets ---
 .env
 .env.*
-!.env.example
+!.env.exampleS
 !.env.*.example
 **/appsettings.Local.json
 **/appsettings.*.Local.json
@@ -80,4 +93,3 @@ volumes/
 
 # --- Java/IntelliJ leftovers (if any tooling is used) ---
 *.iml
-
