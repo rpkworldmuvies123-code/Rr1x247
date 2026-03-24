@@ -32,6 +32,39 @@
       mssql_db:
         condition: service_healthy
 
+  apiresultados:
+    image: apiresultados
+    build:
+      context: .
+      dockerfile: ApiResultados/Dockerfile
+    networks:
+      - env_net
+    depends_on:
+      mssql_db:
+        condition: service_healthy
+
+  apiapostas:
+    image: apiapostas
+    build:
+      context: .
+      dockerfile: ApiApostas/Dockerfile
+    networks:
+      - env_net
+    depends_on:
+      mssql_db:
+        condition: service_healthy
+
+  apipagamentos:
+    image: apipagamentos
+    build:
+      context: .
+      dockerfile: ApiPagamentos/Dockerfile
+    networks:
+      - env_net
+    depends_on:
+      mssql_db:
+        condition: service_healthy
+
 networks:
   env_net:
     driver: bridge
