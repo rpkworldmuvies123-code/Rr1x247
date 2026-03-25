@@ -93,3 +93,5 @@ volumes/
 
 # --- Java/IntelliJ leftovers (if any tooling is used) ---
 *.iml
+
+SQL/credentials.sql
