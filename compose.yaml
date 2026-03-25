@@ -49,6 +49,12 @@
       - "${APIRESULTADOS_PORT:-5204}:8080"
     networks:
       - env_net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
     depends_on:
       mssql_db:
         condition: service_healthy
@@ -73,6 +79,19 @@
       - env_net
     depends_on:
       mssql_db:
+        condition: service_healthy
+
+  frontend:
+    image: betstrike-frontend
+    build:
+      context: ./betstrike-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    networks:
+      - env_net
+    depends_on:
+      apiresultados:
         condition: service_healthy
 
 networks:
