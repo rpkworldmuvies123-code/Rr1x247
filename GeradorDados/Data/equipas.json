@@ -1,0 +1,75 @@
+﻿[
+  {
+    "nome": "SL Benfica",
+    "sigla": "SLB"
+  },
+  {
+    "nome": "Sporting CP",
+    "sigla": "SCP"
+  },
+  {
+    "nome": "FC Porto",
+    "sigla": "FCP"
+  },
+  {
+    "nome": "SC Braga",
+    "sigla": "SCB"
+  },
+  {
+    "nome": "Vitória SC",
+    "sigla": "VS"
+  },
+  {
+    "nome": "FC Arouca",
+    "sigla": "FCA"
+  },
+  {
+    "nome": "Rio Ave FC",
+    "sigla": "RAV"
+  },
+  {
+    "nome": "CD Nacional",
+    "sigla": "CDN"
+  },
+  {
+    "nome": "Estrela Amadora",
+    "sigla": "EAM"
+  },
+  {
+    "nome": "Guarda",
+    "sigla": "CDG"
+  },
+  {
+    "nome": "Santa Clara",
+    "sigla": "SC"
+  },
+  {
+    "nome": "Moreirense",
+    "sigla": "CDMF"
+  },
+  {
+    "nome": "Famalicão",
+    "sigla": "FCF"
+  },
+  {
+    "nome": "Paços Ferreira",
+    "sigla": "ACDPF"
+  },
+  {
+    "nome": "Boavista",
+    "sigla": "FCCB"
+  },
+  {
+    "nome": "Académica",
+    "sigla": "AC"
+  },
+  {
+    "nome": "Penafiel",
+    "sigla": "CDPF"
+  },
+  {
+    "nome": "Leixões",
+    "sigla": "LSC"
+  }
+]
+
