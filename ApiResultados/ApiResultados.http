@@ -1,6 +1,217 @@
 @ApiResultados_HostAddress = http://localhost:5204
+@ApiKey = Ra1MTLOcHOaJL8EXlAaKQ8PjGMrccSgr5w4yxg0c6QNRb1zP0WVAj81KcX6uQV0T
+@CodigoJogo = FUT-2026-0101
+@CodigoJogoResultadoConhecido = FUT-2026-0111
+@CodigoJogoResultadoDesconhecido = FUT-2026-0112
 
-GET {{ApiResultados_HostAddress}}/weatherforecast/
+### Health (publico)
+GET {{ApiResultados_HostAddress}}/health
 Accept: application/json
 
-###
+### Health stats (protegido)
+GET {{ApiResultados_HostAddress}}/health/stats
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+### Criar jogo (Agendado)
+POST {{ApiResultados_HostAddress}}/api/jogos
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "codigoJogo": "{{CodigoJogo}}",
+  "dataHoraInicio": "2026-03-26T20:30:00Z",
+  "equipaCasa": "Benfica",
+  "equipaFora": "Porto",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1,
+  "golosCasa": 0,
+  "golosVisitante": 0
+}
+
+### Listar jogos
+GET {{ApiResultados_HostAddress}}/api/jogos
+Accept: application/json
+
+### Listar jogos por estado (EmCurso = 2)
+GET {{ApiResultados_HostAddress}}/api/jogos?estado=2
+Accept: application/json
+
+### Obter jogo por codigo
+GET {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogo}}
+Accept: application/json
+
+### Atualizar estado para EmCurso
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogo}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 2
+}
+
+### Atualizar marcador (apenas quando EmCurso)
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogo}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "golosCasa": 1,
+  "golosVisitante": 0
+}
+
+### Atualizar estado para Finalizado
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogo}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 3
+}
+
+### Tentar remover jogo finalizado (deve dar 409)
+DELETE {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogo}}
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+### Criar jogo para remover (Agendado)
+POST {{ApiResultados_HostAddress}}/api/jogos
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "codigoJogo": "FUT-2026-0102",
+  "dataHoraInicio": "2026-03-26T22:00:00Z",
+  "equipaCasa": "Sporting",
+  "equipaFora": "Braga",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1,
+  "golosCasa": 0,
+  "golosVisitante": 0
+}
+
+### Remover jogo Agendado (deve dar 204)
+DELETE {{ApiResultados_HostAddress}}/api/jogos/FUT-2026-0102
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+### ===============================
+### Cenario A - resultado conhecido
+### ===============================
+
+### A1) Criar jogo para resultado conhecido
+POST {{ApiResultados_HostAddress}}/api/jogos
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "codigoJogo": "{{CodigoJogoResultadoConhecido}}",
+  "dataHoraInicio": "2026-03-27T20:00:00Z",
+  "equipaCasa": "Braga",
+  "equipaFora": "Guimaraes",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1,
+  "golosCasa": 0,
+  "golosVisitante": 0
+}
+
+### A2) Passar para EmCurso
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoConhecido}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 2
+}
+
+### A3) Atualizar marcador para 2-1
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoConhecido}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "golosCasa": 2,
+  "golosVisitante": 1
+}
+
+### A4) Finalizar jogo (resultado esperado: "1")
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoConhecido}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 3
+}
+
+### A5) Obter jogo finalizado (resultado esperado: "1")
+GET {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoConhecido}}
+Accept: application/json
+
+### ==================================
+### Cenario B - resultado desconhecido
+### ==================================
+
+### B1) Criar jogo para resultado desconhecido (Agendado)
+POST {{ApiResultados_HostAddress}}/api/jogos
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "codigoJogo": "{{CodigoJogoResultadoDesconhecido}}",
+  "dataHoraInicio": "2026-03-27T22:00:00Z",
+  "equipaCasa": "Rio Ave",
+  "equipaFora": "Boavista",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1,
+  "golosCasa": 0,
+  "golosVisitante": 0
+}
+
+### B2) Passar para EmCurso sem atualizar marcador
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoDesconhecido}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 2
+}
+
+### B3) Finalizar sem updates de marcador (resultado esperado: "0")
+PATCH {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoDesconhecido}}
+Content-Type: application/json
+Accept: application/json
+X-API-Key: {{ApiKey}}
+X-Client-Id: rider-http-client
+
+{
+  "estadoAtual": 3
+}
+
+### B4) Obter jogo finalizado (resultado esperado: "0")
+GET {{ApiResultados_HostAddress}}/api/jogos/{{CodigoJogoResultadoDesconhecido}}
+Accept: application/json

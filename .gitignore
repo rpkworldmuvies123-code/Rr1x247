@@ -61,10 +61,7 @@ UpgradeLog*.htm
 *.vsp
 *.vspx
 
-<<<<<<< HEAD
 # --- Build outputs / packages / coverage ---
-=======
->>>>>>> origin/master
 bin/
 obj/
 **/bin/
@@ -80,7 +77,7 @@ coverage/
 # --- Project local config/secrets ---
 .env
 .env.*
-!.env.exampleS
+!.env.example
 !.env.*.example
 **/appsettings.Local.json
 **/appsettings.*.Local.json

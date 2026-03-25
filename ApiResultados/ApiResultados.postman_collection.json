@@ -1,0 +1,345 @@
+{
+  "info": {
+    "_postman_id": "8bb38e23-cf89-4a0f-9f70-9d8a1d3b6e31",
+    "name": "ApiResultados - Colecao Melhorada",
+    "description": "Colecao organizada por cenarios (health, auth, fluxo e validacoes) para a API de Resultados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5204" },
+    { "key": "apiKey", "value": "Ra1MTLOcHOaJL8EXlAaKQ8PjGMrccSgr5w4yxg0c6QNRb1zP0WVAj81KcX6uQV0T" },
+    { "key": "invalidApiKey", "value": "ApiKeyErrada" },
+    { "key": "codigoJogoPrincipal", "value": "" },
+    { "key": "codigoJogoDelete", "value": "" },
+    { "key": "codigoJogoResultadoConhecido", "value": "" },
+    { "key": "codigoJogoResultadoDesconhecido", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const method = (pm.request.method || '').toUpperCase();",
+          "const path = pm.request.url.getPath();",
+          "const protectedHealthStats = path === '/health/stats';",
+          "const protectedJogosWrite = path.startsWith('/api/jogos') && !['GET', 'HEAD', 'OPTIONS'].includes(method);",
+          "if (protectedHealthStats || protectedJogosWrite) {",
+          "  if (!pm.request.headers.has('X-API-Key')) pm.request.headers.add({ key: 'X-API-Key', value: pm.collectionVariables.get('apiKey') || '' });",
+          "  if (!pm.request.headers.has('X-Client-Id')) pm.request.headers.add({ key: 'X-Client-Id', value: 'postman-tests' });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health (publico)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Body e ok', () => pm.expect(pm.response.json()).to.eql('ok'));"
+            ] }
+          }]
+        },
+        {
+          "name": "GET /health/stats (com API key)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/health/stats", "host": ["{{baseUrl}}"], "path": ["health", "stats"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('Stats validas', () => {",
+              "  pm.expect(b.jogos).to.be.a('number');",
+              "  pm.expect(b.resultados).to.be.a('number');",
+              "  pm.expect(b.databaseReachable).to.eql(true);",
+              "});"
+            ] }
+          }]
+        },
+        {
+          "name": "GET /health/stats sem API key (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-API-Key", "value": "" },
+              { "key": "X-Client-Id", "value": "postman-health-edge" }
+            ],
+            "url": { "raw": "{{baseUrl}}/health/stats", "host": ["{{baseUrl}}"], "path": ["health", "stats"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ] } }]
+        },
+        {
+          "name": "GET /health/stats com API key invalida (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{invalidApiKey}}" },
+              { "key": "X-Client-Id", "value": "postman-health-edge" }
+            ],
+            "url": { "raw": "{{baseUrl}}/health/stats", "host": ["{{baseUrl}}"], "path": ["health", "stats"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "Jogos - Fluxo Principal",
+      "item": [
+        {
+          "name": "Seed codigos dinamicos",
+          "event": [{
+            "listen": "prerequest",
+            "script": { "type": "text/javascript", "exec": [
+              "const year = new Date().getUTCFullYear();",
+              "const r = () => String(Math.floor(Math.random() * 9000) + 1000);",
+              "pm.collectionVariables.set('codigoJogoPrincipal', `FUT-${year}-${r()}`);",
+              "pm.collectionVariables.set('codigoJogoDelete', `FUT-${year}-${r()}`);",
+              "pm.collectionVariables.set('codigoJogoResultadoConhecido', `FUT-${year}-${r()}`);",
+              "pm.collectionVariables.set('codigoJogoResultadoDesconhecido', `FUT-${year}-${r()}`);"
+            ] }
+          }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/jogos (criar principal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"{{codigoJogoPrincipal}}\",\n  \"dataHoraInicio\": \"2026-03-26T20:30:00Z\",\n  \"equipaCasa\": \"Benfica\",\n  \"equipaFora\": \"Porto\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 1,\n  \"golosCasa\": 0,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ] } }]
+        },
+        {
+          "name": "GET /api/jogos (listar)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Resposta e array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ] } }]
+        },
+        {
+          "name": "PATCH /api/jogos/{codigo} -> EmCurso",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 2\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoPrincipal}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoPrincipal}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "PATCH /api/jogos/{codigo} marcador 2-1",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"golosCasa\": 2,\n  \"golosVisitante\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoPrincipal}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoPrincipal}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "PATCH /api/jogos/{codigo} -> Finalizado",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 3\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoPrincipal}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoPrincipal}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "GET /api/jogos/{codigo} (resultado esperado 1)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoPrincipal}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoPrincipal}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('Resultado simbolico = 1', () => pm.expect(b.resultadoAtual.resultado).to.eql('1'));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "Jogos - Edge Cases",
+      "item": [
+        {
+          "name": "POST /api/jogos duplicado (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"{{codigoJogoPrincipal}}\",\n  \"dataHoraInicio\": \"2026-03-26T20:30:00Z\",\n  \"equipaCasa\": \"Benfica\",\n  \"equipaFora\": \"Porto\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 1,\n  \"golosCasa\": 0,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));"
+          ] } }]
+        },
+        {
+          "name": "POST /api/jogos em Finalizado (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"FUT-2099-0109\",\n  \"dataHoraInicio\": \"2026-03-26T20:30:00Z\",\n  \"equipaCasa\": \"A\",\n  \"equipaFora\": \"B\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 3,\n  \"golosCasa\": 1,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ] } }]
+        },
+        {
+          "name": "POST /api/jogos sem API key (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "" },
+              { "key": "X-Client-Id", "value": "postman-auth-edge" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"FUT-2099-0101\",\n  \"dataHoraInicio\": \"2026-03-26T20:30:00Z\",\n  \"equipaCasa\": \"A\",\n  \"equipaFora\": \"B\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 1,\n  \"golosCasa\": 0,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ] } }]
+        },
+        {
+          "name": "POST /api/jogos API key invalida (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{invalidApiKey}}" },
+              { "key": "X-Client-Id", "value": "postman-auth-edge" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"FUT-2099-0102\",\n  \"dataHoraInicio\": \"2026-03-26T20:30:00Z\",\n  \"equipaCasa\": \"A\",\n  \"equipaFora\": \"B\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 1,\n  \"golosCasa\": 0,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ] } }]
+        },
+        {
+          "name": "PATCH marcador fora de EmCurso (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"golosCasa\": 1,\n  \"golosVisitante\": 0\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoDelete}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoDelete}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404 ou 409 conforme existencia', () => pm.expect([404,409]).to.include(pm.response.code));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "Resultado Simbolico",
+      "item": [
+        {
+          "name": "Cenario desconhecido: criar jogo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoJogo\": \"{{codigoJogoResultadoDesconhecido}}\",\n  \"dataHoraInicio\": \"2026-03-27T22:00:00Z\",\n  \"equipaCasa\": \"Rio Ave\",\n  \"equipaFora\": \"Boavista\",\n  \"tipoCompeticao\": \"Liga Portugal\",\n  \"estadoAtual\": 1,\n  \"golosCasa\": 0,\n  \"golosVisitante\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api", "jogos"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ] } }]
+        },
+        {
+          "name": "Cenario desconhecido: passar para EmCurso sem marcador",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 2\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoResultadoDesconhecido}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoResultadoDesconhecido}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "Cenario desconhecido: finalizar sem marcador",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 3\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoResultadoDesconhecido}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoResultadoDesconhecido}}"] }
+          }
+        },
+        {
+          "name": "Cenario desconhecido: validar resultado = 0",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoResultadoDesconhecido}}", "host": ["{{baseUrl}}"], "path": ["api", "jogos", "{{codigoJogoResultadoDesconhecido}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b = pm.response.json();",
+            "pm.test('Resultado = 0', () => pm.expect(b.resultadoAtual.resultado).to.eql('0'));"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}

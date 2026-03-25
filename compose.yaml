@@ -37,6 +37,16 @@
     build:
       context: .
       dockerfile: ApiResultados/Dockerfile
+    environment:
+      RESULTADOS_DB_HOST: "${RESULTADOS_DB_HOST:-mssql_db}"
+      RESULTADOS_DB_PORT: "${RESULTADOS_DB_PORT:-1433}"
+      RESULTADOS_DB_NAME: "${RESULTADOS_DB_NAME:-betstrike-resultados}"
+      RESULTADOS_DB_USER: "${RESULTADOS_DB_USER:-resultados}"
+      RESULTADOS_DB_PASSWORD: "${RESULTADOS_DB_PASSWORD}"
+      RESULTADOS_API_KEY: "${RESULTADOS_API_KEY}"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "${APIRESULTADOS_PORT:-5204}:8080"
     networks:
       - env_net
     depends_on:

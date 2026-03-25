@@ -6,6 +6,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		compose.yaml = compose.yaml
 		.gitignore = .gitignore
+		.env = .env
+		.env.example = .env.example
+		Docs\prot-parte1.pdf = Docs\prot-parte1.pdf
+		Docs\api_resultados.md = Docs\api_resultados.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiResultados", "ApiResultados\ApiResultados.csproj", "{970B1D5A-B09B-4B11-82F3-24F05E7B2873}"
