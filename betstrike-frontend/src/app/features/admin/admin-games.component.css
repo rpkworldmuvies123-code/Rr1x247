@@ -1,0 +1,161 @@
+:host {
+  display: block;
+  background: #ffffff;
+  color: #000000;
+}
+
+.page {
+  padding: 12px;
+}
+
+.panel {
+  max-width: 980px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  padding: 12px;
+  box-shadow: none;
+}
+
+.add-section,
+.list-section {
+  background: #ffffff;
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+h1,
+h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+form {
+  display: grid;
+  gap: 6px;
+}
+
+label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+input,
+select,
+button {
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  padding: 4px 6px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #000000;
+}
+
+button {
+  font-weight: 700;
+  cursor: pointer;
+  background: #e6e6e6;
+}
+
+.feedback {
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  padding: 6px;
+  margin-bottom: 10px;
+}
+
+.feedback.success {
+  background: #ffffff;
+  color: #000000;
+}
+
+.feedback.error {
+  background: #ffffff;
+  color: #000000;
+}
+
+.games-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.games-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.game-meta {
+  display: grid;
+  gap: 3px;
+}
+
+.teams {
+  margin: 0;
+  font-weight: 700;
+}
+
+.small {
+  margin: 0;
+  color: #000000;
+  font-size: 13px;
+}
+
+.actions,
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edit-btn {
+  background: #e6e6e6;
+  color: #000000;
+}
+
+.remove-btn {
+  background: #e6e6e6;
+  color: #000000;
+}
+
+.ghost-btn {
+  background: #e6e6e6;
+  color: #000000;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 35%);
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  z-index: 20;
+}
+
+.edit-dialog {
+  width: min(480px, 100%);
+  background: #ffffff;
+  border: 1px solid #000000 !important;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px;
+}

@@ -1,0 +1,78 @@
+<main class="page" aria-labelledby="games-title">
+  <section class="panel">
+    <h1 id="games-title">Jogos da Jornada</h1>
+
+    <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()" novalidate>
+      <div>
+        <label for="date">Data</label>
+        <input id="date" type="date" formControlName="date" />
+      </div>
+
+      <div>
+        <label for="competition">Competicao</label>
+        <input id="competition" type="text" formControlName="competition" placeholder="Liga Portugal" />
+      </div>
+
+      <div>
+        <label for="status">Estado</label>
+        <select id="status" formControlName="status">
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Filtrar</button>
+        <button type="button" class="secondary" (click)="clearFilters()">Limpar</button>
+      </div>
+    </form>
+
+    @if (isLoading()) {
+      <p role="status" aria-live="polite">A carregar jogos...</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (!isLoading() && hasGames()) {
+      <div class="table-wrap">
+        <table>
+          <caption class="sr-only">Lista de jogos da jornada</caption>
+          <thead>
+            <tr>
+              <th scope="col">Codigo</th>
+              <th scope="col">Jogo</th>
+              <th scope="col">Competicao</th>
+              <th scope="col">Data</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Marcador</th>
+              <th scope="col">Detalhes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (game of games(); track game.id) {
+              <tr>
+                <td>{{ game.code }}</td>
+                <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
+                <td>{{ game.competition }}</td>
+                <td>{{ game.startTime | date: 'short' }}</td>
+                <td>{{ statusLabel(game.status) }}</td>
+                <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
+                <td>
+                  <a [routerLink]="['/games', game.id]">Ver</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (!isLoading() && !hasGames()) {
+      <p role="status" aria-live="polite">Nenhum jogo encontrado para os filtros aplicados.</p>
+    }
+  </section>
+</main>
+

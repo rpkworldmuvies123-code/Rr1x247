@@ -1,0 +1,39 @@
+<main class="page" aria-labelledby="details-title">
+  <section class="panel">
+    <a [routerLink]="['/games']">&larr; Voltar para jogos</a>
+
+    @if (isLoading()) {
+      <p role="status" aria-live="polite">A carregar detalhes...</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (!isLoading()) {
+      @if (game(); as gameData) {
+        <h1 id="details-title">{{ gameData.homeTeam }} vs {{ gameData.awayTeam }}</h1>
+        <p class="meta">{{ gameData.competition }} · {{ gameData.startTime | date: 'full' }}</p>
+        <p class="score">{{ gameData.homeScore }} - {{ gameData.awayScore }}</p>
+        <p><strong>Estado:</strong> {{ statusLabel() }}</p>
+        <p><strong>Codigo:</strong> {{ gameData.code }}</p>
+
+        @if (gameData.venue) {
+          <p><strong>Estadio:</strong> {{ gameData.venue }}</p>
+        }
+
+        <h2>Eventos</h2>
+        @if (gameData.events.length > 0) {
+          <ul>
+            @for (event of gameData.events; track event) {
+              <li>{{ event }}</li>
+            }
+          </ul>
+        } @else {
+          <p>Sem eventos registados.</p>
+        }
+      }
+    }
+  </section>
+</main>
+

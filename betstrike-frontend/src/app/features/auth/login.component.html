@@ -1,0 +1,53 @@
+<main class="page" aria-labelledby="login-title">
+  <section class="card">
+    <h1 id="login-title">BetStrike</h1>
+    <p class="subtitle">Acede para visualizar jogos e resultados em tempo real.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="isSubmitting()">
+      <label for="username">Utilizador</label>
+      <input
+        id="username"
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
+        aria-describedby="username-error"
+      />
+      @if (form.controls.username.invalid && form.controls.username.touched) {
+        <p id="username-error" class="error" role="alert">Introduz um nome de utilizador valido.</p>
+      }
+
+      <label for="password">Palavra-passe</label>
+      <input
+        id="password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+        aria-describedby="password-error"
+      />
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 4 caracteres.</p>
+      }
+
+      <label for="role">Perfil</label>
+      <select id="role" formControlName="role">
+        <option value="user">Utilizador</option>
+        <option value="admin">Administrador</option>
+      </select>
+
+      <button type="submit" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+          A autenticar...
+        } @else {
+          Entrar
+        }
+      </button>
+
+      @if (errorMessage()) {
+        <p class="error" role="alert" aria-live="assertive">{{ errorMessage() }}</p>
+      }
+    </form>
+  </section>
+</main>
+

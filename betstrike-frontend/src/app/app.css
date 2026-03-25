@@ -1,0 +1,148 @@
+:host {
+	display: block;
+	min-height: 100dvh;
+	background: var(--bg);
+	color: var(--text);
+}
+
+.skip-link {
+	position: absolute;
+	left: -9999px;
+	top: 0;
+	padding: 0.5rem;
+	background: var(--surface);
+	color: var(--text);
+}
+
+.skip-link:focus {
+	left: 0.5rem;
+	top: 0.5rem;
+	z-index: 100;
+}
+
+.topbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.85rem;
+	padding: 1rem 1.25rem;
+	background: var(--surface);
+	border-bottom: 0;
+	box-shadow: var(--shadow-sm);
+	color: var(--text);
+}
+
+.brand {
+	font-size: 1.3rem;
+	font-weight: 800;
+	margin-right: auto;
+}
+
+nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+}
+
+.nav-link {
+	border-radius: var(--radius-sm);
+	border: 0;
+	background: transparent;
+	color: var(--link);
+	font-weight: 600;
+	padding: 0.45rem 0.7rem;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav-link:hover {
+	background: var(--primary-soft);
+}
+
+.theme-btn {
+	border: 0;
+	background: var(--surface-alt);
+	color: var(--text);
+	font-weight: 600;
+}
+
+.theme-btn:hover {
+	background: var(--primary-soft);
+}
+
+.session {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.logout-btn {
+	border-radius: 8px;
+	border: 0;
+	background: var(--danger-soft);
+	color: var(--danger-text);
+	padding: 0.45rem 0.75rem;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.logout-btn:hover {
+	background: color-mix(in srgb, var(--danger-soft) 82%, var(--surface));
+}
+
+button {
+	border-radius: var(--radius-sm);
+	border: 0;
+	background: var(--primary-strong);
+	color: var(--text);
+	padding: 0.45rem 0.75rem;
+	cursor: pointer;
+}
+
+a:focus-visible,
+button:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+
+.topbar.admin-mode {
+	background: #ffffff;
+	color: #000000;
+	border-bottom: 1px solid #000000 !important;
+	box-shadow: none;
+}
+
+.topbar.admin-mode .nav-link,
+.topbar.admin-mode .logout-btn,
+.topbar.admin-mode button {
+	background: #ffffff;
+	color: #000000;
+	border: 1px solid #000000 !important;
+	transition: none;
+}
+
+.topbar.admin-mode .nav-link:hover,
+.topbar.admin-mode .logout-btn:hover,
+.topbar.admin-mode button:hover {
+	background: #f0f0f0;
+}
+
+.topbar.admin-mode .theme-btn {
+	display: none;
+}
+
+main {
+	min-height: calc(100dvh - 4.5rem);
+}
+
+@media (max-width: 760px) {
+	.topbar {
+		padding: 0.85rem 0.9rem;
+	}
+
+	.session {
+		width: 100%;
+		justify-content: space-between;
+	}
+}
+

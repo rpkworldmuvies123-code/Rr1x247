@@ -1,0 +1,33 @@
+<a class="skip-link" href="#main-content">Saltar para conteudo principal</a>
+
+<header class="topbar" [class.admin-mode]="isAdminMode()">
+  <div class="brand">BetStrike</div>
+
+  @if (!isAdminMode()) {
+    <button
+      type="button"
+      class="theme-btn"
+      [attr.aria-pressed]="isLightMode()"
+      aria-label="Alternar entre modo escuro e claro"
+      (click)="toggleTheme()"
+    >
+      @if (isLightMode()) {
+        Modo escuro
+      } @else {
+        Modo claro
+      }
+    </button>
+  }
+
+  @if (isAuthenticated()) {
+
+    <div class="session">
+      <span>Ola, {{ username() }}</span>
+      <button type="button" class="logout-btn" (click)="logout()">Terminar sessao</button>
+    </div>
+  }
+</header>
+
+<main id="main-content">
+  <router-outlet />
+</main>

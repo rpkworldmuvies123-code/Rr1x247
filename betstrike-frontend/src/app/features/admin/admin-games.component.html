@@ -1,0 +1,111 @@
+<main class="page" aria-labelledby="admin-title">
+  <section class="panel">
+    <h1 id="admin-title">Gestao de Jogos</h1>
+
+    @if (feedbackMessage()) {
+      <p [class]="feedbackType() === 'error' ? 'feedback error' : 'feedback success'" role="status" aria-live="polite">
+        {{ feedbackMessage() }}
+      </p>
+    }
+
+    <section class="add-section" aria-labelledby="create-game-title">
+      <h2 id="create-game-title">Adicionar jogo</h2>
+      <form [formGroup]="createForm" (ngSubmit)="createGame()" novalidate>
+        <label for="code">Codigo</label>
+        <input id="code" type="text" formControlName="code" />
+
+        <label for="homeTeam">Equipa da casa</label>
+        <input id="homeTeam" type="text" formControlName="homeTeam" />
+
+        <label for="awayTeam">Equipa visitante</label>
+        <input id="awayTeam" type="text" formControlName="awayTeam" />
+
+        <label for="competition">Competicao</label>
+        <input id="competition" type="text" formControlName="competition" />
+
+        <label for="startTime">Data e hora</label>
+        <input id="startTime" type="datetime-local" formControlName="startTime" />
+
+        <button type="submit">Criar jogo</button>
+      </form>
+    </section>
+
+    <section class="list-section" aria-labelledby="games-list-title">
+      <h2 id="games-list-title">Lista de jogos</h2>
+
+      @if (isLoading()) {
+        <p role="status" aria-live="polite">A carregar jogos...</p>
+      } @else if (hasGames()) {
+        <ul class="games-list">
+          @for (game of games(); track game.id) {
+            <li>
+              <div class="game-meta">
+                <p class="teams">{{ game.homeTeam }} vs {{ game.awayTeam }}</p>
+                <p class="small">{{ game.code }} · {{ game.competition }}</p>
+                <p class="small">Estado: {{ statusLabel(game.status) }} · Marcador: {{ game.homeScore }}-{{ game.awayScore }}</p>
+              </div>
+
+              <div class="actions">
+                <button
+                  type="button"
+                  class="edit-btn"
+                  [attr.aria-label]="'Editar jogo ' + game.code"
+                  (click)="openEditDialog(game)"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  [disabled]="!canDelete(game)"
+                  [attr.aria-label]="'Remover jogo ' + game.code"
+                  (click)="deleteGame(game)"
+                >
+                  Remover
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p>Sem jogos disponiveis.</p>
+      }
+    </section>
+  </section>
+
+  @if (isEditOpen() && editingGame(); as game) {
+    <div class="edit-overlay" role="presentation" (click)="closeEditDialog()">
+      <section
+        class="edit-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-game-title"
+        (click)="$event.stopPropagation()"
+      >
+        <h2 id="edit-game-title">Editar jogo</h2>
+        <p class="small">{{ game.homeTeam }} vs {{ game.awayTeam }} · {{ game.code }}</p>
+
+        <form [formGroup]="updateForm" (ngSubmit)="updateGame()" novalidate>
+          <label for="status">Estado</label>
+          <select id="status" formControlName="status">
+            @for (status of statusOptions; track status) {
+              <option [value]="status">{{ statusLabel(status) }}</option>
+            }
+          </select>
+
+          <label for="homeScore">Golos casa</label>
+          <input id="homeScore" type="number" min="0" formControlName="homeScore" />
+
+          <label for="awayScore">Golos visitante</label>
+          <input id="awayScore" type="number" min="0" formControlName="awayScore" />
+
+          <div class="dialog-actions">
+            <button type="submit" class="edit-btn">Guardar</button>
+            <button type="button" class="ghost-btn" (click)="closeEditDialog()">Cancelar</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+</main>
+

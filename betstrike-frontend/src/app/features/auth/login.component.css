@@ -1,0 +1,83 @@
+:host {
+  display: block;
+}
+
+.page {
+  min-height: calc(100dvh - 4.5rem);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.card {
+  width: min(28rem, 100%);
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+h1 {
+  margin: 0;
+  color: var(--text);
+}
+
+.subtitle {
+  margin: 0.5rem 0 1.25rem;
+  color: var(--text-muted);
+}
+
+form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+label {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+input,
+select,
+button {
+  border-radius: var(--radius-sm);
+  border: 0;
+  padding: 0.68rem;
+  font-size: 1rem;
+  background: var(--surface-alt);
+  color: var(--text);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+button {
+  margin-top: 0.75rem;
+  background: var(--primary-strong);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--primary);
+}
+
+button:disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  color: var(--error-text);
+  font-size: 0.9rem;
+}
+
