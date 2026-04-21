@@ -12,10 +12,11 @@ public class SimuladorJogo
     private readonly JogoSimulacao _jogo;
     private readonly HttpClientService _httpClient;
     private readonly ILogger<SimuladorJogo> _logger;
+    private readonly SimulacaoPortalService _portalService;
     private readonly Random _random = new();
 
-    // Intervalo de atualização em segundos (10s = 10 minutos no jogo)
-    private const int IntervaloDemorado = 10;
+    // Intervalo de atualizacao em segundos (10s = 10 minutos no jogo)
+    private readonly int _intervaloAtualizacaoSegundos;
     
     // Probabilidades de golos por intervalo para atingir 2-3 golos/jogo
     // Com 9 intervalos: 0.15 * 9 = 1.35 e 0.12 * 9 = 1.08 = ~2.43 golos/jogo
@@ -25,11 +26,15 @@ public class SimuladorJogo
     public SimuladorJogo(
         JogoSimulacao jogo,
         HttpClientService httpClient,
-        ILogger<SimuladorJogo> logger)
+        SimulacaoPortalService portalService,
+        ILogger<SimuladorJogo> logger,
+        int intervaloAtualizacaoSegundos)
     {
         _jogo = jogo;
         _httpClient = httpClient;
+        _portalService = portalService;
         _logger = logger;
+        _intervaloAtualizacaoSegundos = Math.Max(1, intervaloAtualizacaoSegundos);
     }
 
     /// <summary>
@@ -44,11 +49,11 @@ public class SimuladorJogo
 
             // Fase 1: Agendado
             await ExibirEstadoAsync("Agendado (1)");
-            await Task.Delay(IntervaloDemorado * 1000, cancellationToken);
+            await Task.Delay(_intervaloAtualizacaoSegundos * 1000, cancellationToken);
 
             // Fase 2: Em Curso (90 minutos = 9 intervalos de 10 segundos)
             _jogo.Estado = EstadoJogo.EmCurso;
-            await _httpClient.AtualizarEstadoJogoAsync(_jogo.JogoId, (int)EstadoJogo.EmCurso);
+            await _httpClient.AtualizarEstadoJogoAsync(_jogo.CodigoJogo, (int)EstadoJogo.EmCurso);
             _logger.LogInformation($"[{_jogo.CodigoJogo}] Estado: Em Curso (2)");
 
             for (int intervalo = 0; intervalo < 9; intervalo++)
@@ -66,7 +71,7 @@ public class SimuladorJogo
                 // Aguardar intervalo (exceto no último)
                 if (intervalo < 8)
                 {
-                    await Task.Delay(IntervaloDemorado * 1000, cancellationToken);
+                    await Task.Delay(_intervaloAtualizacaoSegundos * 1000, cancellationToken);
                 }
             }
 
@@ -74,7 +79,7 @@ public class SimuladorJogo
             _jogo.Estado = EstadoJogo.Finalizado;
             _jogo.MinutoAtual = 90;
             await AtualizarJogoAsync();
-            await _httpClient.AtualizarEstadoJogoAsync(_jogo.JogoId, (int)EstadoJogo.Finalizado);
+            await _httpClient.AtualizarEstadoJogoAsync(_jogo.CodigoJogo, (int)EstadoJogo.Finalizado);
             
             _logger.LogInformation(
                 $"[{_jogo.CodigoJogo}] Simulação concluída: {_jogo.EquipaCasa} {_jogo.GolosCasa}-{_jogo.GolosVisitante} {_jogo.EquipaFora}");
@@ -102,6 +107,11 @@ public class SimuladorJogo
             _jogo.GolosCasa++;
             _logger.LogInformation(
                 $"[{_jogo.CodigoJogo}] ⚽ GOLO! {_jogo.EquipaCasa} {_jogo.GolosCasa}-{_jogo.GolosVisitante}");
+            _portalService.RegistarEvento(
+                "golo",
+                $"{_jogo.EquipaCasa} marcou golo",
+                _jogo.CodigoJogo,
+                $"marcador={_jogo.GolosCasa}-{_jogo.GolosVisitante}; minuto={_jogo.MinutoAtual}");
         }
 
         // Golo visitante
@@ -110,6 +120,11 @@ public class SimuladorJogo
             _jogo.GolosVisitante++;
             _logger.LogInformation(
                 $"[{_jogo.CodigoJogo}] ⚽ GOLO! {_jogo.EquipaCasa} {_jogo.GolosCasa}-{_jogo.GolosVisitante} {_jogo.EquipaFora}");
+            _portalService.RegistarEvento(
+                "golo",
+                $"{_jogo.EquipaFora} marcou golo",
+                _jogo.CodigoJogo,
+                $"marcador={_jogo.GolosCasa}-{_jogo.GolosVisitante}; minuto={_jogo.MinutoAtual}");
         }
     }
 
@@ -126,7 +141,7 @@ public class SimuladorJogo
             DataHoraAtualizacao = DateTime.Now
         };
 
-        await _httpClient.AtualizarResultadoAsync(_jogo.JogoId, resultado);
+        await _httpClient.AtualizarResultadoAsync(_jogo.CodigoJogo, resultado, _jogo.MinutoAtual);
     }
 
     /// <summary>

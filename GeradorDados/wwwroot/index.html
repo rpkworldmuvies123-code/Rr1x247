@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeradorDados Portal</title>
+  <style>
+    :root {
+      --bg: #000;
+      --surface: #181818;
+      --surface-strong: #202020;
+      --text: #e1e1e1;
+      --muted: #9a9a9a;
+      --line: #3a3a3a;
+      --line-strong: #565656;
+      --logo-bg: #2c2c2c;
+      --ok: #66d58e;
+      --warn: #f3c55f;
+      --err: #ff8f8f;
+      --radius: 0;
+      --border: 1px solid var(--line);
+      --border-strong: 1px solid var(--line-strong);
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+    }
+
+    html[data-theme="light"] {
+      --bg: #f8f7f4;
+      --surface: #ffffff;
+      --surface-strong: #f4efe6;
+      --text: #141414;
+      --muted: #6f6a63;
+      --line: #ddd4c6;
+      --line-strong: #cdbfab;
+      --ok: #2f7a45;
+      --warn: #9b6b18;
+      --err: #9e2b2b;
+      --shadow: 0 12px 28px rgba(25, 22, 17, 0.08);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #000;
+      --surface: #181818;
+      --surface-strong: #202020;
+      --text: #e1e1e1;
+      --muted: #9a9a9a;
+      --line: #3a3a3a;
+      --line-strong: #565656;
+      --logo-bg: #2c2c2c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2.25rem 1.25rem 3rem;
+    }
+
+    .hero { margin-bottom: 1.4rem; }
+
+    .eyebrow {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+      margin: 0.15rem 0 0.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      margin: 0 0 0.9rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.01em;
+      font-weight: 700;
+    }
+
+    p { margin: 0.2rem 0; }
+
+    .intro {
+      color: var(--muted);
+      max-width: 100%;
+      margin-bottom: 1.2rem;
+    }
+
+    .theme-toggle-wrap {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1rem;
+    }
+
+    .col-12 { grid-column: span 12; }
+    .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; }
+    .col-5 { grid-column: span 5; }
+
+    .card {
+      border: var(--border);
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1rem 1rem 1.05rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+
+    .row { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
+
+    .acao-inline {
+      margin-left: 0.25rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    label { color: var(--muted); font-weight: 600; }
+
+    input[type="number"] {
+      width: 120px;
+      padding: 0.48rem 0.56rem;
+      border: var(--border-strong);
+      border-radius: var(--radius);
+      font-size: 0.92rem;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    button {
+      padding: 0.5rem 0.86rem;
+      border-radius: var(--radius);
+      border: var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: var(--line-strong); background: var(--surface-strong); }
+    button:active { transform: translateY(0); }
+
+    #btnIniciar { background: var(--surface-strong); border: var(--border-strong); }
+    #theme-toggle { padding: 0.45rem 0.8rem; font-size: 0.85rem; }
+
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .err { color: var(--err); }
+
+    code {
+      background: var(--surface-strong);
+      padding: 0.13rem 0.35rem;
+      border-radius: var(--radius);
+      color: var(--text);
+      border: var(--border);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--line); padding: 0.5rem 0.42rem; text-align: left; font-size: 0.9rem; }
+    th { background: var(--surface-strong); color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .small { font-size: 0.82rem; color: var(--muted); }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+
+    .progress-wrap { margin-top: 0.5rem; }
+    .progress-label { font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .progress {
+      width: 100%;
+      height: 12px;
+      background: var(--surface-strong);
+      border: var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #7d7567;
+      transition: width 180ms linear;
+    }
+
+    .badge { padding: 0.15rem 0.45rem; border-radius: var(--radius); font-size: 0.8rem; font-weight: 600; display: inline-block; border: var(--border); }
+    .estado-agendado { background: #3a3224; color: #f4cf7b; }
+    .estado-em-curso { background: #1a2e4d; color: #8bc3ff; }
+    .estado-finalizado { background: #213b28; color: #8be7ac; }
+    .estado-outro { background: var(--surface-strong); color: var(--text); }
+    .api-ok { background: #213b28; color: #8be7ac; }
+    .api-erro { background: #4a1f1f; color: #ffabab; }
+    .api-info { background: var(--surface-strong); color: var(--text); }
+
+    html[data-theme="light"] .estado-agendado { background: #f2e6c5; color: #765718; }
+    html[data-theme="light"] .estado-em-curso { background: #dce9ff; color: #1f4b99; }
+    html[data-theme="light"] .estado-finalizado { background: #d8f0dc; color: #1d6a33; }
+    html[data-theme="light"] .api-ok { background: #d8f0dc; color: #1d6a33; }
+    html[data-theme="light"] .api-erro { background: #f4d9d9; color: #8b2a2a; }
+
+    .progress-running { background: linear-gradient(90deg, #4a84ff, #78a9ff); }
+    .progress-success { background: linear-gradient(90deg, #2f9d4f, #6ac786); }
+    .progress-error { background: linear-gradient(90deg, #b74242, #d26666); }
+    .progress-idle { background: #7d7567; }
+    .progress-minutes-agendado { background: #9f8f6e; }
+    .progress-minutes-em-curso { background: linear-gradient(90deg, #4a84ff, #78a9ff); }
+    .progress-minutes-finalizado { background: linear-gradient(90deg, #2f9d4f, #6ac786); }
+
+    .recent-events-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: none;
+      flex: 1;
+      overflow-y: auto;
+      border-top: 1px solid var(--line);
+    }
+
+    .recent-events-list li {
+      padding: 0.52rem 0.42rem;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.9rem;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .timeline-scroll {
+      max-height: 520px;
+      overflow-y: auto;
+      border-top: 1px solid var(--line);
+    }
+
+    .timeline-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--surface-strong);
+    }
+
+    .timeline-separator td {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: var(--surface-strong);
+    }
+
+    .fixed-height-card {
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (max-width: 980px) {
+      .col-7, .col-6, .col-5 { grid-column: span 12; }
+      .shell { padding: 1.4rem 0.9rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">BetStrike / Operações internas</div>
+      <h1>Portal Gerador de Dados</h1>
+      <p class="intro">Executa a <strong>próxima jornada</strong> (9 jogos), mostra o estado em tempo real e o resultado de cada chamada para a API.</p>
+    </section>
+
+    <section class="grid">
+      <div class="col-12">
+        <div class="card">
+          <h2>Controlo</h2>
+          <div class="row">
+            <label for="intervalo">Intervalo (segundos):</label>
+            <input id="intervalo" type="number" min="1" value="10">
+            <button id="btnIniciar">Iniciar Próxima Jornada</button>
+            <button id="btnAtualizar">Atualizar Estado</button>
+            <button id="btnLimpar">Limpar Histórico</button>
+            <span id="acaoMsg" class="acao-inline"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6">
+        <div class="card fixed-height-card">
+          <h2>Eventos Recentes (Golos)</h2>
+          <ul id="eventosRecentesLista" class="recent-events-list">
+            <li class="small">Sem golos recentes.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-6">
+        <div class="card fixed-height-card">
+          <h2>Estado</h2>
+          <p><strong>Em execução:</strong> <span id="emExecucao">-</span></p>
+          <p><strong>Último resultado:</strong> <span id="ultimoResultado">-</span></p>
+          <p><strong>Último início (UTC):</strong> <span id="ultimoInicio">-</span></p>
+          <p><strong>Último fim (UTC):</strong> <span id="ultimoFim">-</span></p>
+          <p><strong>Mensagem:</strong> <span id="mensagem">-</span></p>
+          <p><strong>Heartbeat:</strong> <span id="heartbeatTexto" class="muted">-</span></p>
+          <div class="progress-wrap">
+            <div class="progress-label"><strong>Progresso do intervalo:</strong> <span id="progressoTexto">-</span></div>
+            <div class="progress"><div id="progressoBarra" class="progress-bar"></div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label"><strong>Progresso dos 90 minutos:</strong> <span id="progressoMinutosTexto">-</span></div>
+            <div class="progress"><div id="progressoMinutosBarra" class="progress-bar progress-minutes-agendado"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card">
+          <h2>Jogos Gerados</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Jogo</th>
+                <th>Estado</th>
+                <th>Marcador</th>
+                <th>90'</th>
+                <th>Último envio API</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaJogosBody">
+              <tr><td colspan="6" class="small">Sem dados ainda.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card">
+          <h2>Timeline</h2>
+          <div class="timeline-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>UTC</th>
+                  <th>Tipo</th>
+                  <th>Código</th>
+                  <th>Mensagem</th>
+                  <th>Detalhe</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaEventosBody">
+                <tr><td colspan="5" class="small">Sem eventos ainda.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="theme-toggle-wrap">
+      <button id="theme-toggle" type="button">Tema: escuro</button>
+    </div>
+  </main>
+
+  <script>
+    const acaoMsg = document.getElementById('acaoMsg');
+    const intervaloInput = document.getElementById('intervalo');
+    const heartbeatTexto = document.getElementById('heartbeatTexto');
+    const progressoTexto = document.getElementById('progressoTexto');
+    const progressoBarra = document.getElementById('progressoBarra');
+    const progressoMinutosTexto = document.getElementById('progressoMinutosTexto');
+    const progressoMinutosBarra = document.getElementById('progressoMinutosBarra');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    let ultimaPollOkMs = null;
+    let ultimoEventoMs = null;
+    let emExecucaoAtual = false;
+    let intervaloAtualSegundos = 10;
+    let execucaoInicioMs = null;
+    let cicloAnchorMs = null;
+
+    async function carregarConfig() {
+      const r = await fetch('/api/config');
+      if (!r.ok) return;
+      const cfg = await r.json();
+      if (cfg.intervaloAtualizacaoSegundos && cfg.intervaloAtualizacaoSegundos >= 1) {
+        intervaloInput.value = cfg.intervaloAtualizacaoSegundos;
+        intervaloAtualSegundos = Number(cfg.intervaloAtualizacaoSegundos);
+      }
+    }
+
+    function setMsg(texto, cls) {
+      acaoMsg.textContent = texto;
+      acaoMsg.className = cls ? `acao-inline ${cls}` : 'acao-inline';
+    }
+
+    function formatUtc(v) {
+      if (!v) return '-';
+      return new Date(v).toISOString();
+    }
+
+    async function atualizarEstado() {
+      const r = await fetch('/api/estado');
+      if (!r.ok) {
+        setMsg('Falha ao obter estado.', 'err');
+        heartbeatTexto.textContent = 'Falha no heartbeat.';
+        return;
+      }
+
+      const s = await r.json();
+      ultimaPollOkMs = Date.now();
+      emExecucaoAtual = !!s.emExecucao;
+      if (Number(intervaloInput.value) >= 1) {
+        intervaloAtualSegundos = Number(intervaloInput.value);
+      }
+
+      const inicioMs = s.ultimaExecucaoInicioUtc ? Date.parse(s.ultimaExecucaoInicioUtc) : NaN;
+      execucaoInicioMs = Number.isNaN(inicioMs) ? null : inicioMs;
+
+      if ((s.eventos || []).length) {
+        const ultimo = s.eventos[s.eventos.length - 1];
+        const t = Date.parse(ultimo.timestampUtc);
+        if (!Number.isNaN(t)) {
+          ultimoEventoMs = t;
+        }
+
+        // Reiniciar ciclo apenas quando houver novo evento de atualizacao real do jogo/API.
+        for (let i = s.eventos.length - 1; i >= 0; i--) {
+          const ev = s.eventos[i];
+          if (!ev || !ev.timestampUtc) continue;
+          if (!['api', 'estado'].includes(String(ev.tipo || '').toLowerCase())) continue;
+          const evMs = Date.parse(ev.timestampUtc);
+          if (Number.isNaN(evMs)) continue;
+          if (!cicloAnchorMs || evMs > cicloAnchorMs) {
+            cicloAnchorMs = evMs;
+          }
+          break;
+        }
+      }
+
+      if (!emExecucaoAtual) {
+        cicloAnchorMs = null;
+      } else if (!cicloAnchorMs && execucaoInicioMs) {
+        cicloAnchorMs = execucaoInicioMs;
+      }
+
+      document.getElementById('emExecucao').textContent = s.emExecucao ? 'Sim' : 'Não';
+      document.getElementById('ultimoInicio').textContent = formatUtc(s.ultimaExecucaoInicioUtc);
+      document.getElementById('ultimoFim').textContent = formatUtc(s.ultimaExecucaoFimUtc);
+      document.getElementById('mensagem').textContent = s.ultimaMensagem || '-';
+
+      let ultimo = '-';
+      if (s.ultimaExecucaoSucesso === true) ultimo = 'Sucesso';
+      if (s.ultimaExecucaoSucesso === false) ultimo = 'Falha';
+      if (s.ultimaExecucaoSucesso === null) ultimo = 'Em curso';
+      document.getElementById('ultimoResultado').textContent = ultimo;
+
+      atualizarProgressoMinutos(s.jogos || []);
+
+      renderJogos(s.jogos || []);
+      renderEventosRecentes(s.eventos || []);
+      renderEventos(s.eventos || []);
+      atualizarHeartbeatEProgresso();
+    }
+
+    function atualizarHeartbeatEProgresso() {
+      const agora = Date.now();
+      if (ultimaPollOkMs) {
+        const deltaPoll = Math.max(0, Math.floor((agora - ultimaPollOkMs) / 1000));
+        heartbeatTexto.textContent = `Última atualização há ${deltaPoll}s`;
+      } else {
+        heartbeatTexto.textContent = 'Sem heartbeat ainda.';
+      }
+
+      if (!emExecucaoAtual) {
+        progressoBarra.style.width = '0%';
+        progressoTexto.textContent = 'Parado';
+        progressoBarra.classList.remove('progress-running', 'progress-success', 'progress-error');
+        progressoBarra.classList.add('progress-idle');
+        return;
+      }
+
+      const baseMs = cicloAnchorMs || ultimoEventoMs || execucaoInicioMs || agora;
+      const intervalo = Math.max(1, intervaloAtualSegundos);
+      const elapsed = Math.max(0, (agora - baseMs) / 1000);
+      const ciclo = elapsed % intervalo;
+      const pct = (ciclo / intervalo) * 100;
+
+      progressoBarra.style.width = `${pct.toFixed(1)}%`;
+      progressoTexto.textContent = `${ciclo.toFixed(1)}s / ${intervalo}s`;
+      progressoBarra.classList.remove('progress-idle', 'progress-success', 'progress-error');
+      progressoBarra.classList.add('progress-running');
+    }
+
+    function atualizarProgressoMinutos(jogos) {
+      if (!jogos.length) {
+        progressoMinutosBarra.style.width = '0%';
+        progressoMinutosTexto.textContent = 'Sem jogos';
+        progressoMinutosBarra.classList.remove('progress-minutes-em-curso', 'progress-minutes-finalizado');
+        progressoMinutosBarra.classList.add('progress-minutes-agendado');
+        return;
+      }
+
+      const minutos = jogos.map(j => {
+        if (typeof j.minutoAtual === 'number' && Number.isFinite(j.minutoAtual)) {
+          return Math.max(0, Math.min(90, j.minutoAtual));
+        }
+        const estado = String(j.estado || '').toLowerCase();
+        if (estado.includes('finalizado')) return 90;
+        return 0;
+      });
+
+      const mediaMinutos = minutos.reduce((acc, v) => acc + v, 0) / minutos.length;
+      const pct = Math.max(0, Math.min(100, (mediaMinutos / 90) * 100));
+      progressoMinutosBarra.style.width = `${pct.toFixed(1)}%`;
+      progressoMinutosTexto.textContent = `${mediaMinutos.toFixed(1)}' / 90'`;
+
+      const todosFinalizados = jogos.every(j => String(j.estado || '').toLowerCase().includes('finalizado'));
+      const algumEmCurso = jogos.some(j => String(j.estado || '').toLowerCase().includes('curso'));
+
+      progressoMinutosBarra.classList.remove('progress-minutes-agendado', 'progress-minutes-em-curso', 'progress-minutes-finalizado');
+      if (todosFinalizados) {
+        progressoMinutosBarra.classList.add('progress-minutes-finalizado');
+      } else if (algumEmCurso) {
+        progressoMinutosBarra.classList.add('progress-minutes-em-curso');
+      } else {
+        progressoMinutosBarra.classList.add('progress-minutes-agendado');
+      }
+
+      if (todosFinalizados) {
+        progressoBarra.classList.remove('progress-running', 'progress-idle');
+        if (document.getElementById('ultimoResultado').textContent === 'Falha') {
+          progressoBarra.classList.add('progress-error');
+          progressoBarra.classList.remove('progress-success');
+        } else {
+          progressoBarra.classList.add('progress-success');
+          progressoBarra.classList.remove('progress-error');
+        }
+      }
+    }
+
+    function renderJogos(jogos) {
+      const body = document.getElementById('tabelaJogosBody');
+      if (!jogos.length) {
+        body.innerHTML = '<tr><td colspan="6" class="small">Sem jogos gerados nesta execução.</td></tr>';
+        return;
+      }
+
+      body.innerHTML = jogos.map(j => `
+        <tr>
+          <td class="mono">${escapeHtml(j.codigoJogo || '-')}</td>
+          <td>${escapeHtml((j.equipaCasa || '-') + ' vs ' + (j.equipaFora || '-'))}</td>
+          <td><span class="badge ${estadoClass(j.estado)}">${escapeHtml(j.estado || '-')}</span></td>
+          <td class="mono">${Number(j.golosCasa ?? 0)}-${Number(j.golosVisitante ?? 0)}</td>
+          <td class="mono">${Number(j.minutoAtual ?? 0)}'</td>
+          <td><span class="badge ${apiClass(j.ultimoEnvioApi)}">${escapeHtml(j.ultimoEnvioApi || '-')}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderEventosRecentes(eventos) {
+      const list = document.getElementById('eventosRecentesLista');
+      const recentes = (eventos || [])
+        .filter(e => {
+          const tipo = String(e.tipo || '').toLowerCase();
+          const mensagem = String(e.mensagem || '').toLowerCase();
+          return tipo === 'golo' || mensagem.includes('marcou golo');
+        })
+        .slice(-20)
+        .reverse();
+
+      if (!recentes.length) {
+        list.innerHTML = '<li class="small">Sem golos recentes.</li>';
+        return;
+      }
+
+      list.innerHTML = recentes.map(e => `
+        <li>${escapeHtml(formatLinhaGolo(e))}</li>
+      `).join('');
+    }
+
+    function formatLinhaGolo(evento) {
+      const codigo = evento?.codigoJogo || '-';
+      const mensagem = evento?.mensagem || 'golo';
+      const detalhe = String(evento?.detalhe || '');
+      const marcadorMatch = detalhe.match(/marcador=([^;]+)/i);
+      const minutoMatch = detalhe.match(/minuto=([^;]+)/i);
+      const marcadorMensagemMatch = mensagem.match(/\((\d+\s*-\s*\d+)\)/);
+      const marcador = marcadorMatch
+        ? marcadorMatch[1].trim()
+        : (marcadorMensagemMatch ? marcadorMensagemMatch[1].replace(/\s+/g, '') : '?-?');
+      const minuto = minutoMatch ? `${minutoMatch[1].trim()}'` : '?\'';
+      return `${codigo} - ${mensagem} (${marcador}, ${minuto})`;
+    }
+
+    function estadoClass(estado) {
+      const e = String(estado || '').toLowerCase();
+      if (e.includes('agendado')) return 'estado-agendado';
+      if (e.includes('curso')) return 'estado-em-curso';
+      if (e.includes('finalizado')) return 'estado-finalizado';
+      return 'estado-outro';
+    }
+
+    function apiClass(info) {
+      const t = String(info || '').toLowerCase();
+      if (t.includes('ok')) return 'api-ok';
+      if (t.includes('falhou') || t.includes('erro') || t.includes('4') || t.includes('5')) return 'api-erro';
+      return 'api-info';
+    }
+
+    function renderEventos(eventos) {
+      const body = document.getElementById('tabelaEventosBody');
+      if (!eventos.length) {
+        body.innerHTML = '<tr><td colspan="5" class="small">Sem eventos ainda.</td></tr>';
+        return;
+      }
+
+      const ultimos = [...eventos].reverse();
+      body.innerHTML = ultimos.map(e => `
+        ${String(e.tipo || '').toLowerCase() === 'separador'
+          ? `<tr class="timeline-separator"><td colspan="5">${escapeHtml(e.mensagem || '---')}</td></tr>`
+          : `<tr>
+              <td class="mono">${escapeHtml(formatUtc(e.timestampUtc))}</td>
+              <td>${escapeHtml(e.tipo || '-')}</td>
+              <td class="mono">${escapeHtml(e.codigoJogo || '-')}</td>
+              <td>${escapeHtml(e.mensagem || '-')}</td>
+              <td class="small">${escapeHtml(e.detalhe || '-')}</td>
+            </tr>`
+        }
+      `).join('');
+    }
+
+    function escapeHtml(v) {
+      return String(v)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    async function iniciar() {
+      const intervalo = Number(intervaloInput.value);
+      const r = await fetch('/api/simulacao/iniciar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intervaloAtualizacaoSegundos: intervalo })
+      });
+
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 202) {
+        setMsg(data.message || 'Execução iniciada.', 'ok');
+      } else if (r.status === 409) {
+        setMsg(data.message || 'Já existe execução em curso.', 'warn');
+      } else {
+        setMsg(data.message || 'Erro ao iniciar execução.', 'err');
+      }
+
+      await atualizarEstado();
+    }
+
+    async function limparHistorico() {
+      const r = await fetch('/api/estado/limpar', { method: 'POST' });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        setMsg(data.message || 'Histórico limpo.', 'ok');
+      } else {
+        setMsg(data.message || 'Não foi possível limpar histórico.', 'warn');
+      }
+      await atualizarEstado();
+    }
+
+    function aplicarTema(theme) {
+      const target = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      themeToggle.textContent = target === 'light' ? 'Tema: claro' : 'Tema: escuro';
+      localStorage.setItem('gd-theme', target);
+    }
+
+    document.getElementById('btnIniciar').addEventListener('click', iniciar);
+    document.getElementById('btnAtualizar').addEventListener('click', atualizarEstado);
+    document.getElementById('btnLimpar').addEventListener('click', limparHistorico);
+    themeToggle.addEventListener('click', () => {
+      const atual = document.documentElement.getAttribute('data-theme') || 'dark';
+      aplicarTema(atual === 'dark' ? 'light' : 'dark');
+    });
+
+    aplicarTema(localStorage.getItem('gd-theme') || 'dark');
+    carregarConfig();
+    atualizarEstado();
+    setInterval(atualizarEstado, 3000);
+    setInterval(atualizarHeartbeatEProgresso, 250);
+  </script>
+</body>
+</html>
+

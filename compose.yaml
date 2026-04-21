@@ -22,14 +22,24 @@
     restart: unless-stopped
 
   geradordados:
-    image: geradordados
+    image: geradordados-web
     build:
       context: .
       dockerfile: GeradorDados/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      ApiResultados__BaseUrl: "http://apiresultados:8080"
+      ApiResultados__ApiKey: "${RESULTADOS_API_KEY}"
+      ApiResultados__ClientId: "gerador-dados"
+    ports:
+      - "${GERADORDADOS_PORT:-5300}:8080"
     networks:
       - env_net
     depends_on:
       mssql_db:
+        condition: service_healthy
+      apiresultados:
         condition: service_healthy
 
   apiresultados:
@@ -82,6 +92,7 @@
         condition: service_healthy
 
   frontend:
+    profiles: ["legacy-frontend"]
     image: betstrike-frontend
     build:
       context: ./betstrike-frontend

@@ -29,11 +29,19 @@ public class EquipasService
             }
 
             var json = await File.ReadAllTextAsync(caminhoJson);
-            var equipas = JsonSerializer.Deserialize<List<EquipaInfo>>(json);
+            var equipas = JsonSerializer.Deserialize<List<EquipaInfo>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
             if (equipas == null || equipas.Count == 0)
             {
                 throw new InvalidOperationException("Nenhuma equipa foi carregada do JSON.");
+            }
+
+            if (equipas.Any(e => string.IsNullOrWhiteSpace(e.Nome) || string.IsNullOrWhiteSpace(e.Sigla)))
+            {
+                throw new InvalidOperationException("O ficheiro de equipas contem entradas sem nome ou sigla.");
             }
 
             _logger.LogInformation($"Carregadas {equipas.Count} equipas com sucesso.");

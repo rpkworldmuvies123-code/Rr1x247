@@ -1,62 +1,108 @@
 ﻿using GeradorDados.Services;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
-// Configurar construtor de serviços e logging
-var serviceCollection = new ServiceCollection();
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options => { options.ListenAnyIP(8080); });
 
-// Carregar configurações
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .Build();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
-// Adicionar logging
-serviceCollection.AddLogging(builder =>
-{
-    builder.AddConsole();
-    builder.AddConfiguration(configuration.GetSection("Logging"));
-});
-
-// Registar serviços
-serviceCollection.AddSingleton<EquipasService>();
-serviceCollection.AddSingleton<MatchmakingService>();
-serviceCollection.AddScoped<HttpClientService>(provider =>
+builder.Services.AddSingleton<EquipasService>();
+builder.Services.AddSingleton<MatchmakingService>();
+builder.Services.AddScoped<HttpClientService>(provider =>
 {
     var logger = provider.GetRequiredService<ILogger<HttpClientService>>();
-    var baseUrl = configuration["ApiResultados:BaseUrl"] ?? "http://localhost:5001";
-    return new HttpClientService(baseUrl, logger);
+    var portalService = provider.GetRequiredService<SimulacaoPortalService>();
+    var baseUrl = builder.Configuration["ApiResultados:BaseUrl"] ?? "http://localhost:5204";
+    var apiKey = builder.Configuration["ApiResultados:ApiKey"];
+    var clientId = builder.Configuration["ApiResultados:ClientId"] ?? "gerador-dados";
+    return new HttpClientService(baseUrl, logger, apiKey, clientId, portalService);
 });
-serviceCollection.AddScoped<OrquestradorJornada>();
-
-// Construir service provider
-var serviceProvider = serviceCollection.BuildServiceProvider();
-
-// Obter logger e orquestrador
-var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-var orquestrador = serviceProvider.GetRequiredService<OrquestradorJornada>();
-
-try
+builder.Services.AddScoped<OrquestradorJornada>();
+builder.Services.AddSingleton<SimulacaoPortalService>(provider =>
 {
-    logger.LogInformation("GeradorDados iniciado com sucesso!");
-    logger.LogInformation("Configuração carregada:");
-    logger.LogInformation($"  API URL: {configuration["ApiResultados:BaseUrl"]}");
+    var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+    var logger = provider.GetRequiredService<ILogger<SimulacaoPortalService>>();
+    var maxEventos = LerInteiroPositivo(builder.Configuration["Simulation:MaxEventos"], 1000);
+    return new SimulacaoPortalService(scopeFactory, logger, maxEventos);
+});
 
-    // Determinar caminho para ficheiro de equipas
-    string caminhoEquipas = Path.Combine(
-        Directory.GetCurrentDirectory(),
-        "Data",
-        "equipas.json");
+var app = builder.Build();
 
-    logger.LogInformation($"  Caminho de equipas: {caminhoEquipas}");
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+var portalService = app.Services.GetRequiredService<SimulacaoPortalService>();
 
-    // Executar simulação da Jornada 1
-    await orquestrador.ExecutarJornadaAsync(caminhoEquipas);
-}
-catch (Exception ex)
+var caminhoEquipas = Path.Combine(app.Environment.ContentRootPath, "Data", "equipas.json");
+var intervaloDefault = LerInteiroPositivo(app.Configuration["Simulation:IntervaloAtualizacaoSegundos"], 10);
+
+logger.LogInformation("GeradorDados Web iniciado com sucesso.");
+logger.LogInformation("API Resultados: {BaseUrl}", app.Configuration["ApiResultados:BaseUrl"]);
+logger.LogInformation("Caminho equipas: {CaminhoEquipas}", caminhoEquipas);
+
+
+app.UseDefaultFiles();
+app.UseStaticFiles(new StaticFileOptions
 {
-    logger.LogError($"Erro fatal na aplicação: {ex.Message}");
-    logger.LogError($"Stack trace: {ex.StackTrace}");
-    Environment.Exit(1);
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        context.Context.Response.Headers.Pragma = "no-cache";
+        context.Context.Response.Headers.Expires = "0";
+    }
+});
+
+app.MapGet("/api/estado", () => Results.Ok(portalService.ObterEstado()));
+
+app.MapGet("/api/config", () => Results.Ok(new
+{
+    intervaloAtualizacaoSegundos = intervaloDefault,
+    apiResultadosBaseUrl = app.Configuration["ApiResultados:BaseUrl"]
+}));
+
+app.MapPost("/api/simulacao/iniciar", (IniciarSimulacaoRequest? request) =>
+{
+    var intervalo = request?.IntervaloAtualizacaoSegundos ?? intervaloDefault;
+    if (intervalo < 1)
+    {
+        return Results.BadRequest(new { message = "intervaloAtualizacaoSegundos deve ser >= 1." });
+    }
+
+    var iniciou = portalService.TentarIniciarExecucao(caminhoEquipas, intervalo);
+    if (!iniciou)
+    {
+        return Results.Conflict(new { message = "Ja existe uma execucao em curso." });
+    }
+
+    return Results.Accepted("/api/estado", new { message = "Execucao iniciada.", intervaloAtualizacaoSegundos = intervalo });
+});
+
+app.MapPost("/api/estado/limpar", () =>
+{
+    var limpou = portalService.TentarLimparHistorico(out var mensagem);
+    if (!limpou)
+    {
+        return Results.Conflict(new { message = mensagem });
+    }
+
+    return Results.Ok(new { message = mensagem });
+});
+
+app.Run();
+
+return;
+
+static int LerInteiroPositivo(string? valor, int fallback)
+{
+    if (int.TryParse(valor, out var parsed) && parsed >= 1)
+    {
+        return parsed;
+    }
+
+    return fallback;
 }
+
+public sealed class IniciarSimulacaoRequest
+{
+    public int? IntervaloAtualizacaoSegundos { get; set; }
+}
+
