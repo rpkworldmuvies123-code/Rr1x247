@@ -21,7 +21,10 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('.brand')?.textContent).toContain('BetStrike');
+    const brandImage = compiled.querySelector('.brand') as HTMLImageElement;
+    expect(brandImage).toBeTruthy();
+    expect(brandImage?.src).toContain('txt.png');
+    expect(brandImage?.alt).toBe('BetStrike');
   });
 
   it('should hide authenticated navigation actions when no session exists', async () => {

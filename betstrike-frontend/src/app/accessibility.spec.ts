@@ -6,6 +6,7 @@ import { BackendApiService } from './core/api/backend-api.service';
 import { GameDetails } from './core/models/game.model';
 import { AdminGamesComponent } from './features/admin/admin-games.component';
 import { LoginComponent } from './features/auth/login.component';
+import { GameBetComponent } from './features/bets/game-bet.component';
 import { GameDetailsComponent } from './features/games/game-details.component';
 import { GamesListComponent } from './features/games/games-list.component';
 import { expectNoAxeViolations } from '../testing/axe-helpers';
@@ -94,6 +95,32 @@ describe('AXE accessibility checks', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(GameDetailsComponent);
+    fixture.detectChanges();
+
+    await expectNoAxeViolations(fixture.nativeElement);
+  });
+
+  it('Betting page should have no critical accessibility violations', async () => {
+    await TestBed.configureTestingModule({
+      imports: [GameBetComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BackendApiService,
+          useValue: {
+            getGameById: () => of(mockGameDetails)
+          }
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of(convertToParamMap({ id: mockGameDetails.id }))
+          }
+        }
+      ]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(GameBetComponent);
     fixture.detectChanges();
 
     await expectNoAxeViolations(fixture.nativeElement);

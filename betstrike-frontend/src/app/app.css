@@ -34,11 +34,10 @@
 }
 
 .brand {
-	font-family: Georgia, 'Times New Roman', serif;
-	font-size: 1.45rem;
-	font-weight: 600;
 	margin-right: auto;
-	letter-spacing: -0.02em;
+	max-height: 4rem;
+	width: auto;
+	object-fit: contain;
 }
 
 nav {

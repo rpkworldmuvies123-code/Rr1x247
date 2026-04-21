@@ -18,6 +18,10 @@
         <p><strong>Estado:</strong> {{ statusLabel() }}</p>
         <p><strong>Codigo:</strong> {{ gameData.code }}</p>
 
+        <p>
+          <a [routerLink]="['/games', gameData.id, 'bet']">Apostar neste jogo</a>
+        </p>
+
         @if (gameData.venue) {
           <p><strong>Estadio:</strong> {{ gameData.venue }}</p>
         }

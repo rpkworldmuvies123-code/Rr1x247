@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent)
   },
   {
+    path: 'register',
+    loadComponent: () => import('./features/auth/register.component').then((m) => m.RegisterComponent)
+  },
+  {
     path: 'games',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -22,6 +26,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/games/game-details.component').then((m) => m.GameDetailsComponent)
+  },
+  {
+    path: 'games/:id/bet',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/bets/game-bet.component').then((m) => m.GameBetComponent)
   },
   {
     path: 'admin/games',

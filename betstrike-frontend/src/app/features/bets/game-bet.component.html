@@ -1,0 +1,81 @@
+<main class="page" aria-labelledby="bet-title">
+  <section class="panel">
+    <a [routerLink]="['/games', gameId()]">&larr; Voltar ao jogo</a>
+
+    <p class="eyebrow">Mercado clássico 1X2</p>
+    <h1 id="bet-title">Faz a tua aposta</h1>
+    <p class="lead">As apostas são resolvidas sempre com base no resultado final dos 90 minutos.</p>
+
+    @if (isLoading()) {
+      <p role="status" aria-live="polite">A carregar jogo...</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="notice" role="status">{{ errorMessage() }}</p>
+    }
+
+    <section class="match-card" aria-labelledby="match-summary-title">
+      <div class="match-header">
+        <h2 id="match-summary-title">{{ game().equipaCasa }} vs {{ game().equipaFora }}</h2>
+        <p class="source">{{ sourceLabel() }}</p>
+      </div>
+
+      <dl class="details-grid">
+        <div>
+          <dt>Data do Jogo</dt>
+          <dd>{{ game().dataDoJogo }}</dd>
+        </div>
+        <div>
+          <dt>Hora de Início</dt>
+          <dd>{{ game().horaDeInicio }}</dd>
+        </div>
+        <div>
+          <dt>Equipa Casa</dt>
+          <dd>{{ game().equipaCasa }}</dd>
+        </div>
+        <div>
+          <dt>Equipa Fora</dt>
+          <dd>{{ game().equipaFora }}</dd>
+        </div>
+        <div>
+          <dt>Golos Casa</dt>
+          <dd>{{ game().golosCasa }}</dd>
+        </div>
+        <div>
+          <dt>Golos Fora</dt>
+          <dd>{{ game().golosFora }}</dd>
+        </div>
+        <div>
+          <dt>Estado do Jogo</dt>
+          <dd>{{ stateLabel() }} ({{ game().estadoDoJogo }})</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="bet-card" aria-labelledby="bet-options-title">
+      <h2 id="bet-options-title">Tipos de Aposta</h2>
+      <p class="help-text">Seleciona uma opção do mercado 1X2.</p>
+
+      <form [formGroup]="betForm" (ngSubmit)="placeBet()" novalidate>
+        <fieldset class="options-group">
+          <legend class="sr-only">Selecionar mercado de aposta</legend>
+
+          @for (option of betOptions; track option) {
+            <label class="option-row" [class.selected]="betForm.controls.outcome.value === option">
+              <input type="radio" [value]="option" formControlName="outcome" />
+              <span class="market-code">{{ option }}</span>
+              <span class="market-label">{{ betMarketLabels[option] }}</span>
+            </label>
+          }
+        </fieldset>
+
+        <button type="submit">Confirmar aposta</button>
+      </form>
+    </section>
+
+    @if (confirmationMessage()) {
+      <p class="success" role="status">{{ confirmationMessage() }}</p>
+    }
+  </section>
+</main>
+
