@@ -1,11 +1,8 @@
-﻿using GeradorDados.Models;
+using GeradorDados.Models;
 using Microsoft.Extensions.Logging;
 
 namespace GeradorDados.Services;
 
-/// <summary>
-/// orquestra a simulação de uma jornada completa.
-/// </summary>
 public class OrquestradorJornada
 {
     private readonly EquipasService _equipasService;
@@ -31,87 +28,106 @@ public class OrquestradorJornada
     }
 
     /// <summary>
-    /// Executa a próxima jornada disponível, respeitando as regras do protocolo.
+    /// Fase 1 do protocolo: gera emparelhamentos e publica os 9 jogos na API como Agendado.
+    /// Devolve a lista de JogoSimulacao prontos para simular.
     /// </summary>
-    public async Task<bool> ExecutarProximaJornadaAsync(string caminhoEquipas, int intervaloAtualizacaoSegundos)
+    public async Task<List<JogoSimulacao>> PublicarCalendarioAsync(string caminhoEquipas)
     {
+        _logger.LogInformation("=====================================");
+        _logger.LogInformation("Passo 1: Carregando equipas...");
+        _portalService.RegistarEvento("fase", "Passo 1: carregando equipas...");
+
+        var equipas = await _equipasService.CarregarEquipasAsync(caminhoEquipas);
+        _logger.LogInformation("✓ {Total} equipas carregadas", equipas.Count);
+        _portalService.RegistarEvento("fase", $"Equipas carregadas: {equipas.Count}");
+
+        var jogosExistentes = await _httpClientService.ObterJogosAsync();
+        var codigosExistentes = jogosExistentes.Select(j => j.CodigoJogo).ToList();
+
+        var anoAtual = DateTime.UtcNow.Year;
+        var numeroJornada = _matchmakingService.ObterProximaJornadaDisponivel(codigosExistentes, anoAtual);
+
+        _logger.LogInformation("PUBLICANDO CALENDÁRIO - JORNADA {Jornada}", numeroJornada);
+        _logger.LogInformation("=====================================");
+        _portalService.RegistarEvento("separador", $"--- Jornada {numeroJornada} ---");
+        _portalService.RegistarEvento("fase", $"Jornada selecionada: {numeroJornada}");
+
+        var emparelhamentos = ConstruirEmparelhamentos(numeroJornada, anoAtual, equipas, jogosExistentes);
+        _logger.LogInformation("✓ {Total} jogos preparados para a jornada {Jornada}", emparelhamentos.Count, numeroJornada);
+        _portalService.RegistarEvento("fase", $"Emparelhamentos preparados: {emparelhamentos.Count}");
+
+        if (emparelhamentos.Count != NumeroJogos)
+            throw new InvalidOperationException(
+                $"Foram preparados {emparelhamentos.Count} jogos, mas o protocolo exige {NumeroJogos}.");
+
+        var jogosJaExistentes = _matchmakingService.ContarJogosDaJornada(codigosExistentes, anoAtual, numeroJornada);
+        if (jogosJaExistentes > 0)
+        {
+            _logger.LogWarning(
+                "A jornada {Jornada} de {Ano} já tem {Total} jogo(s) na API. Calendário não será publicado novamente.",
+                numeroJornada, anoAtual, jogosJaExistentes);
+            _portalService.RegistarEvento("alerta",
+                $"Jornada {numeroJornada} já tem {jogosJaExistentes} jogo(s) na API. Operação cancelada.");
+            return [];
+        }
+
+        _logger.LogInformation("Passo 3: Criando jogos na API de Resultados...");
+        _portalService.RegistarEvento("fase", "Passo 3: criando jogos na API...");
+
+        var jogos = await CriarJogosAsync(emparelhamentos, numeroJornada);
+
+        _logger.LogInformation("✓ {Total} jogos criados na API", jogos.Count);
+        _portalService.RegistarEvento("fase", $"Jogos criados na API: {jogos.Count}");
+
+        if (jogos.Count == 0)
+        {
+            _logger.LogWarning("Nenhum jogo foi criado na API.");
+            _portalService.RegistarEvento("alerta", "Nenhum jogo criado na API.");
+        }
+
+        return jogos;
+    }
+
+    /// <summary>
+    /// Fase 2 do protocolo: simula todos os jogos fornecidos em paralelo.
+    /// </summary>
+    public async Task SimularTodosAsync(List<JogoSimulacao> jogos, int intervaloSegundos)
+    {
+        _logger.LogInformation("Iniciando simulação em paralelo de {Total} jogos...", jogos.Count);
+        _portalService.RegistarEvento("fase", $"Simulação em paralelo de {jogos.Count} jogos iniciada.");
+
+        var tarefas = jogos.Select(jogo =>
+        {
+            var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+            var simLogger = loggerFactory.CreateLogger<SimuladorJogo>();
+            var simulador = new SimuladorJogo(jogo, _httpClientService, _portalService, simLogger, intervaloSegundos);
+            return SimularJogoComTratamentoAsync(simulador, jogo, simLogger);
+        }).ToList();
+
         try
         {
-            _logger.LogInformation("=====================================");
-            _logger.LogInformation("Passo 1: Carregando equipas...");
-            _portalService.RegistarEvento("fase", "Passo 1: carregando equipas...");
-            var equipas = await _equipasService.CarregarEquipasAsync(caminhoEquipas);
-            _logger.LogInformation($"✓ {equipas.Count} equipas carregadas");
-            _portalService.RegistarEvento("fase", $"Equipas carregadas: {equipas.Count}");
-
-            var jogosExistentes = await _httpClientService.ObterJogosAsync();
-            var codigosExistentes = jogosExistentes.Select(j => j.CodigoJogo).ToList();
-
-            var anoAtual = DateTime.UtcNow.Year;
-            var numeroJornada = _matchmakingService.ObterProximaJornadaDisponivel(codigosExistentes, anoAtual);
-
-            _logger.LogInformation($"INICIANDO SIMULAÇÃO - JORNADA {numeroJornada}");
-            _logger.LogInformation("=====================================");
-            _portalService.RegistarEvento("separador", $"--- Jornada {numeroJornada} ---");
-            _portalService.RegistarEvento("fase", $"Jornada selecionada: {numeroJornada}");
-
-            // Passo 2: Definir emparelhamentos para a jornada.
-            var emparelhamentos = ConstruirEmparelhamentos(numeroJornada, anoAtual, equipas, jogosExistentes);
-            _logger.LogInformation($"✓ {emparelhamentos.Count} jogos preparados para a jornada {numeroJornada}");
-            _portalService.RegistarEvento("fase", $"Emparelhamentos preparados: {emparelhamentos.Count}");
-
-            if (emparelhamentos.Count != NumeroJogos)
-            {
-                throw new InvalidOperationException($"Foram preparados {emparelhamentos.Count} jogos, mas o protocolo exige {NumeroJogos}.");
-            }
-
-            // Validar se a jornada alvo já existe para evitar criar mais de 9 jogos por jornada.
-            var jogosJaExistentesNaJornada = _matchmakingService.ContarJogosDaJornada(codigosExistentes, anoAtual, numeroJornada);
-            if (jogosJaExistentesNaJornada > 0)
-            {
-                _logger.LogWarning(
-                    "A jornada {Jornada} de {Ano} já tem {Total} jogo(s) na API. Para respeitar o protocolo, esta execução não vai criar jogos novos.",
-                    numeroJornada,
-                    anoAtual,
-                    jogosJaExistentesNaJornada);
-                return false;
-            }
-
-            // Passo 3: Criar jogos na API
-            _logger.LogInformation("Passo 3: Criando jogos na API de Resultados...");
-            _portalService.RegistarEvento("fase", "Passo 3: criando jogos na API...");
-            var jogosSimulacao = await CriarJogosAsync(emparelhamentos, numeroJornada);
-            _logger.LogInformation($"✓ {jogosSimulacao.Count} jogos criados");
-            _portalService.RegistarEvento("fase", $"Jogos criados na API: {jogosSimulacao.Count}");
-
-            if (jogosSimulacao.Count == 0)
-            {
-                _logger.LogWarning("Nenhum jogo foi criado; a simulação não será iniciada.");
-                _portalService.RegistarEvento("alerta", "Nenhum jogo criado; simulação não iniciada.");
-                return false;
-            }
-
-            // Passo 4: Simular todos os jogos em paralelo
-            _logger.LogInformation("Passo 4: Iniciando simulação em paralelo de todos os jogos...");
-            _portalService.RegistarEvento("fase", "Passo 4: iniciando simulação em paralelo...");
-            await SimularJogosEmParaleloAsync(jogosSimulacao, intervaloAtualizacaoSegundos);
-
-            // Passo 5: Exibir relatório
-            ExibirRelatorio(jogosSimulacao, numeroJornada);
-            _portalService.RegistarEvento("fase", "Passo 5: relatório final gerado.");
-
-            _logger.LogInformation("=====================================");
-            _logger.LogInformation("SIMULAÇÃO CONCLUÍDA COM SUCESSO");
-            _logger.LogInformation("=====================================");
-            _portalService.RegistarEvento("sucesso", "Simulação concluída com sucesso.");
-            return true;
+            await Task.WhenAll(tarefas);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Erro durante execução da jornada: {ex.Message}");
-            _portalService.RegistarEvento("erro", $"Erro no orquestrador: {ex.Message}");
-            throw;
+            _logger.LogError("Erro durante simulação paralela: {Mensagem}", ex.Message);
         }
+
+        ExibirRelatorio(jogos);
+        _portalService.RegistarEvento("fase", "Relatório final gerado.");
+    }
+
+    /// <summary>
+    /// Simula um único jogo.
+    /// </summary>
+    public async Task SimularJogoAsync(JogoSimulacao jogo, int intervaloSegundos)
+    {
+        _logger.LogInformation("Iniciando simulação individual: {Codigo}", jogo.CodigoJogo);
+
+        var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+        var simLogger = loggerFactory.CreateLogger<SimuladorJogo>();
+        var simulador = new SimuladorJogo(jogo, _httpClientService, _portalService, simLogger, intervaloSegundos);
+        await SimularJogoComTratamentoAsync(simulador, jogo, simLogger);
     }
 
     private List<(string EquipaCasa, string EquipaFora)> ConstruirEmparelhamentos(
@@ -120,7 +136,6 @@ public class OrquestradorJornada
         List<EquipaInfo> equipas,
         IReadOnlyCollection<JogoApiResumo> jogosExistentes)
     {
-        // Jornadas ímpares: emparelhamento aleatório no arranque do par (J1, J3, ...).
         if (numeroJornada % 2 == 1)
         {
             _logger.LogInformation("Passo 2: Gerando emparelhamentos aleatórios para jornada ímpar...");
@@ -128,7 +143,6 @@ public class OrquestradorJornada
             return _matchmakingService.GerarEmparelhamentos(equipas);
         }
 
-        // Jornadas pares: inverter casa/fora da jornada imediatamente anterior.
         var jornadaAnterior = numeroJornada - 1;
         _logger.LogInformation("Passo 2: Reutilizando emparelhamentos da jornada {JornadaAnterior} com inversão casa/fora...", jornadaAnterior);
         _portalService.RegistarEvento("fase", $"Passo 2: jornada par, inversão casa/fora da jornada {jornadaAnterior}.");
@@ -144,19 +158,14 @@ public class OrquestradorJornada
             .ToList();
 
         if (jogosJornadaAnterior.Count != NumeroJogos)
-        {
             throw new InvalidOperationException(
                 $"Não foi possível construir a jornada {numeroJornada}: a jornada {jornadaAnterior} deve ter {NumeroJogos} jogos, mas tem {jogosJornadaAnterior.Count}.");
-        }
 
         return jogosJornadaAnterior
             .Select(x => (x.Jogo.EquipaFora, x.Jogo.EquipaCasa))
             .ToList();
     }
 
-    /// <summary>
-    /// Cria os jogos na API de Resultados
-    /// </summary>
     private async Task<List<JogoSimulacao>> CriarJogosAsync(
         List<(string EquipaCasa, string EquipaFora)> emparelhamentos,
         int numeroJornada)
@@ -181,12 +190,11 @@ public class OrquestradorJornada
 
             _portalService.RegistarJogoGerado(jogo.CodigoJogo, jogo.EquipaCasa, jogo.EquipaFora, jogo.DataHoraInicio);
 
-            // Criar jogo na API
             var jogoId = await _httpClientService.CriarJogoAsync(jogo);
-            
+
             if (jogoId.HasValue && jogoId.Value > 0)
             {
-                var jogoSim = new JogoSimulacao
+                jogosSimulacao.Add(new JogoSimulacao
                 {
                     JogoId = jogoId.Value,
                     CodigoJogo = jogo.CodigoJogo,
@@ -198,14 +206,12 @@ public class OrquestradorJornada
                     GolosVisitante = 0,
                     MinutoAtual = 0,
                     Concluido = false
-                };
-
-                jogosSimulacao.Add(jogoSim);
+                });
                 _portalService.AtualizarMarcadorJogo(jogo.CodigoJogo, 0, 0, "Agendado");
             }
             else
             {
-                _logger.LogWarning($"Falha ao criar jogo {jogo.CodigoJogo}");
+                _logger.LogWarning("Falha ao criar jogo {Codigo}", jogo.CodigoJogo);
                 _portalService.RegistarEvento("erro", $"Falha ao criar jogo {jogo.CodigoJogo}", jogo.CodigoJogo);
             }
         }
@@ -213,40 +219,10 @@ public class OrquestradorJornada
         return jogosSimulacao;
     }
 
-    /// <summary>
-    /// Simula todos os 9 jogos em paralelo com tratamento de erros agregado
-    /// </summary>
-    private async Task SimularJogosEmParaleloAsync(List<JogoSimulacao> jogosSimulacao, int intervaloAtualizacaoSegundos)
-    {
-        var tarefas = jogosSimulacao.Select(jogo =>
-        {
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            var logger = loggerFactory.CreateLogger<SimuladorJogo>();
-            var simulador = new SimuladorJogo(jogo, _httpClientService, _portalService, logger, intervaloAtualizacaoSegundos);
-            
-            // Envolver cada tarefa para capturar exceções individualmente
-            return SimularJogoComTratamentoAsync(simulador, jogo, logger);
-        }).ToList();
-
-        try
-        {
-            await Task.WhenAll(tarefas);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Erro durante simulação paralela: {ex.Message}");
-            // Task.WhenAll agrega exceções - registar mas continuar para exibir relatório
-            _logger.LogWarning("Continuando para exibir relatório final apesar de erros...");
-        }
-    }
-
-    /// <summary>
-    /// Simula um jogo individual com tratamento de erro
-    /// </summary>
     private async Task SimularJogoComTratamentoAsync(
-        SimuladorJogo simulador, 
+        SimuladorJogo simulador,
         JogoSimulacao jogo,
-        ILogger<SimuladorJogo> logger)
+        ILogger<SimuladorJogo> simLogger)
     {
         try
         {
@@ -254,35 +230,29 @@ public class OrquestradorJornada
         }
         catch (Exception ex)
         {
-            logger.LogError($"Erro na simulação do jogo {jogo.CodigoJogo}: {ex.Message}");
-            jogo.Concluido = true; // Marcar como concluído mesmo com erro para continuar
+            simLogger.LogError("Erro na simulação do jogo {Codigo}: {Mensagem}", jogo.CodigoJogo, ex.Message);
+            jogo.Concluido = true;
         }
     }
 
-    /// <summary>
-    /// Exibe relatório final da jornada
-    /// </summary>
-    private void ExibirRelatorio(List<JogoSimulacao> jogos, int numeroJornada)
+    private void ExibirRelatorio(List<JogoSimulacao> jogos)
     {
         _logger.LogInformation("");
         _logger.LogInformation("═════════════════════════════════════════");
-        _logger.LogInformation($"RELATÓRIO FINAL - JORNADA {numeroJornada}");
+        _logger.LogInformation("RELATÓRIO FINAL");
         _logger.LogInformation("═════════════════════════════════════════");
 
         foreach (var jogo in jogos)
         {
-            _logger.LogInformation(
-                $"{jogo.CodigoJogo} | {jogo.EquipaCasa} {jogo.GolosCasa}-{jogo.GolosVisitante} {jogo.EquipaFora}");
+            _logger.LogInformation("{Codigo} | {Casa} {GC}-{GF} {Fora}",
+                jogo.CodigoJogo, jogo.EquipaCasa, jogo.GolosCasa, jogo.GolosVisitante, jogo.EquipaFora);
         }
 
-        // Estatísticas
         int totalGolos = jogos.Sum(j => j.GolosCasa + j.GolosVisitante);
         double mediaGolos = jogos.Count > 0 ? totalGolos / (double)jogos.Count : 0;
 
         _logger.LogInformation("");
-        _logger.LogInformation($"Total de golos na jornada: {totalGolos}");
-        _logger.LogInformation($"Média de golos por jogo: {mediaGolos:F2}");
+        _logger.LogInformation("Total de golos: {Total} | Média por jogo: {Media:F2}", totalGolos, mediaGolos);
         _logger.LogInformation("═════════════════════════════════════════");
     }
 }
-

@@ -124,6 +124,7 @@
     }
 
     .row { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
+    .row-sep { width: 1px; height: 1.5rem; background: var(--line-strong); margin: 0 0.2rem; }
 
     .acao-inline {
       margin-left: 0.25rem;
@@ -154,11 +155,18 @@
       transition: all 140ms ease;
     }
 
-    button:hover { transform: translateY(-1px); border-color: var(--line-strong); background: var(--surface-strong); }
-    button:active { transform: translateY(0); }
+    button:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--line-strong); background: var(--surface-strong); }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
 
-    #btnIniciar { background: var(--surface-strong); border: var(--border-strong); }
+    #btnGerarEmparelhamentos { background: var(--surface-strong); border: var(--border-strong); }
+    #btnSimularTodos { background: var(--surface-strong); border: var(--border-strong); }
     #theme-toggle { padding: 0.45rem 0.8rem; font-size: 0.85rem; }
+
+    .btn-simular-jogo {
+      padding: 0.28rem 0.6rem;
+      font-size: 0.8rem;
+    }
 
     .ok { color: var(--ok); }
     .warn { color: var(--warn); }
@@ -274,7 +282,7 @@
     <section class="hero">
       <div class="eyebrow">BetStrike / Operações internas</div>
       <h1>Portal Gerador de Dados</h1>
-      <p class="intro">Executa a <strong>próxima jornada</strong> (9 jogos), mostra o estado em tempo real e o resultado de cada chamada para a API.</p>
+      <p class="intro">Gera os emparelhamentos da próxima jornada (9 jogos) e simula os resultados, individualmente ou em paralelo.</p>
     </section>
 
     <section class="grid">
@@ -282,9 +290,12 @@
         <div class="card">
           <h2>Controlo</h2>
           <div class="row">
-            <label for="intervalo">Intervalo (segundos):</label>
+            <button id="btnGerarEmparelhamentos">Gerar Emparelhamentos</button>
+            <div class="row-sep"></div>
+            <label for="intervalo">Intervalo (s):</label>
             <input id="intervalo" type="number" min="1" value="10">
-            <button id="btnIniciar">Iniciar Próxima Jornada</button>
+            <button id="btnSimularTodos">Simular Todos</button>
+            <div class="row-sep"></div>
             <button id="btnAtualizar">Atualizar Estado</button>
             <button id="btnLimpar">Limpar Histórico</button>
             <span id="acaoMsg" class="acao-inline"></span>
@@ -315,7 +326,7 @@
             <div class="progress"><div id="progressoBarra" class="progress-bar"></div></div>
           </div>
           <div class="progress-wrap">
-            <div class="progress-label"><strong>Progresso dos 90 minutos:</strong> <span id="progressoMinutosTexto">-</span></div>
+            <div class="progress-label"><strong>Progresso (minutos / 9 jogos):</strong> <span id="progressoMinutosTexto">-</span></div>
             <div class="progress"><div id="progressoMinutosBarra" class="progress-bar progress-minutes-agendado"></div></div>
           </div>
         </div>
@@ -333,10 +344,11 @@
                 <th>Marcador</th>
                 <th>90'</th>
                 <th>Último envio API</th>
+                <th>Ação</th>
               </tr>
             </thead>
             <tbody id="tabelaJogosBody">
-              <tr><td colspan="6" class="small">Sem dados ainda.</td></tr>
+              <tr><td colspan="7" class="small">Sem dados ainda.</td></tr>
             </tbody>
           </table>
         </div>
@@ -379,6 +391,8 @@
     const progressoMinutosTexto = document.getElementById('progressoMinutosTexto');
     const progressoMinutosBarra = document.getElementById('progressoMinutosBarra');
     const themeToggle = document.getElementById('theme-toggle');
+    const btnGerarEmparelhamentos = document.getElementById('btnGerarEmparelhamentos');
+    const btnSimularTodos = document.getElementById('btnSimularTodos');
 
     let ultimaPollOkMs = null;
     let ultimoEventoMs = null;
@@ -386,6 +400,15 @@
     let intervaloAtualSegundos = 10;
     let execucaoInicioMs = null;
     let cicloAnchorMs = null;
+
+    // Estado atual da API (atualizado em cada poll)
+    let estadoAtual = {
+      emExecucao: false,
+      publicandoCalendario: false,
+      simulandoTodos: false,
+      temJogosParaSimulacao: false,
+      jogos: []
+    };
 
     async function carregarConfig() {
       const r = await fetch('/api/config');
@@ -407,6 +430,20 @@
       return new Date(v).toISOString();
     }
 
+    function atualizarBotoesControlo() {
+      const qualquerEmExecucao = estadoAtual.emExecucao;
+      const temJogosAgendados = estadoAtual.jogos.some(j =>
+        String(j.estado || '').toLowerCase().includes('agendado'));
+
+      btnGerarEmparelhamentos.disabled = qualquerEmExecucao;
+      btnSimularTodos.disabled =
+        estadoAtual.publicandoCalendario ||
+        estadoAtual.simulandoTodos ||
+        !estadoAtual.temJogosParaSimulacao ||
+        !temJogosAgendados ||
+        estadoAtual.emExecucao;
+    }
+
     async function atualizarEstado() {
       const r = await fetch('/api/estado');
       if (!r.ok) {
@@ -417,7 +454,16 @@
 
       const s = await r.json();
       ultimaPollOkMs = Date.now();
-      emExecucaoAtual = !!s.emExecucao;
+
+      estadoAtual = {
+        emExecucao: !!s.emExecucao,
+        publicandoCalendario: !!s.publicandoCalendario,
+        simulandoTodos: !!s.simulandoTodos,
+        temJogosParaSimulacao: !!s.temJogosParaSimulacao,
+        jogos: s.jogos || []
+      };
+      emExecucaoAtual = estadoAtual.emExecucao;
+
       if (Number(intervaloInput.value) >= 1) {
         intervaloAtualSegundos = Number(intervaloInput.value);
       }
@@ -428,20 +474,15 @@
       if ((s.eventos || []).length) {
         const ultimo = s.eventos[s.eventos.length - 1];
         const t = Date.parse(ultimo.timestampUtc);
-        if (!Number.isNaN(t)) {
-          ultimoEventoMs = t;
-        }
+        if (!Number.isNaN(t)) ultimoEventoMs = t;
 
-        // Reiniciar ciclo apenas quando houver novo evento de atualizacao real do jogo/API.
         for (let i = s.eventos.length - 1; i >= 0; i--) {
           const ev = s.eventos[i];
           if (!ev || !ev.timestampUtc) continue;
           if (!['api', 'estado'].includes(String(ev.tipo || '').toLowerCase())) continue;
           const evMs = Date.parse(ev.timestampUtc);
           if (Number.isNaN(evMs)) continue;
-          if (!cicloAnchorMs || evMs > cicloAnchorMs) {
-            cicloAnchorMs = evMs;
-          }
+          if (!cicloAnchorMs || evMs > cicloAnchorMs) cicloAnchorMs = evMs;
           break;
         }
       }
@@ -463,9 +504,9 @@
       if (s.ultimaExecucaoSucesso === null) ultimo = 'Em curso';
       document.getElementById('ultimoResultado').textContent = ultimo;
 
-      atualizarProgressoMinutos(s.jogos || []);
-
-      renderJogos(s.jogos || []);
+      atualizarBotoesControlo();
+      atualizarProgressoMinutos(estadoAtual.jogos);
+      renderJogos(estadoAtual.jogos);
       renderEventosRecentes(s.eventos || []);
       renderEventos(s.eventos || []);
       atualizarHeartbeatEProgresso();
@@ -513,9 +554,7 @@
         if (typeof j.minutoAtual === 'number' && Number.isFinite(j.minutoAtual)) {
           return Math.max(0, Math.min(90, j.minutoAtual));
         }
-        const estado = String(j.estado || '').toLowerCase();
-        if (estado.includes('finalizado')) return 90;
-        return 0;
+        return String(j.estado || '').toLowerCase().includes('finalizado') ? 90 : 0;
       });
 
       const mediaMinutos = minutos.reduce((acc, v) => acc + v, 0) / minutos.length;
@@ -550,20 +589,42 @@
     function renderJogos(jogos) {
       const body = document.getElementById('tabelaJogosBody');
       if (!jogos.length) {
-        body.innerHTML = '<tr><td colspan="6" class="small">Sem jogos gerados nesta execução.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="small">Sem jogos gerados nesta execução.</td></tr>';
         return;
       }
 
-      body.innerHTML = jogos.map(j => `
-        <tr>
-          <td class="mono">${escapeHtml(j.codigoJogo || '-')}</td>
-          <td>${escapeHtml((j.equipaCasa || '-') + ' vs ' + (j.equipaFora || '-'))}</td>
-          <td><span class="badge ${estadoClass(j.estado)}">${escapeHtml(j.estado || '-')}</span></td>
-          <td class="mono">${Number(j.golosCasa ?? 0)}-${Number(j.golosVisitante ?? 0)}</td>
-          <td class="mono">${Number(j.minutoAtual ?? 0)}'</td>
-          <td><span class="badge ${apiClass(j.ultimoEnvioApi)}">${escapeHtml(j.ultimoEnvioApi || '-')}</span></td>
-        </tr>
-      `).join('');
+      body.innerHTML = jogos.map(j => {
+        const isAgendado = String(j.estado || '').toLowerCase().includes('agendado');
+        const emSim = !!j.emSimulacao;
+        const bloqueado = estadoAtual.publicandoCalendario || estadoAtual.simulandoTodos;
+        const podeSimular = isAgendado && !emSim && !bloqueado;
+
+        let btnLabel, btnDisabled;
+        if (emSim) {
+          btnLabel = 'A simular…';
+          btnDisabled = true;
+        } else if (isAgendado && !bloqueado) {
+          btnLabel = 'Simular';
+          btnDisabled = false;
+        } else {
+          btnLabel = isAgendado ? '…' : '-';
+          btnDisabled = true;
+        }
+
+        return `
+          <tr>
+            <td class="mono">${escapeHtml(j.codigoJogo || '-')}</td>
+            <td>${escapeHtml((j.equipaCasa || '-') + ' vs ' + (j.equipaFora || '-'))}</td>
+            <td><span class="badge ${estadoClass(j.estado)}">${escapeHtml(j.estado || '-')}</span></td>
+            <td class="mono">${Number(j.golosCasa ?? 0)}-${Number(j.golosVisitante ?? 0)}</td>
+            <td class="mono">${Number(j.minutoAtual ?? 0)}'</td>
+            <td><span class="badge ${apiClass(j.ultimoEnvioApi)}">${escapeHtml(j.ultimoEnvioApi || '-')}</span></td>
+            <td>
+              <button class="btn-simular-jogo" data-simular-jogo="${escapeHtml(j.codigoJogo || '')}" ${btnDisabled ? 'disabled' : ''}>${btnLabel}</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function renderEventosRecentes(eventos) {
@@ -647,23 +708,52 @@
         .replaceAll("'", '&#039;');
     }
 
-    async function iniciar() {
+    async function gerarEmparelhamentos() {
+      const r = await fetch('/api/simulacao/publicar-calendario', { method: 'POST' });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 202) {
+        setMsg(data.message || 'A gerar emparelhamentos…', 'ok');
+      } else if (r.status === 409) {
+        setMsg(data.message || 'Operação em curso.', 'warn');
+      } else {
+        setMsg(data.message || 'Erro ao gerar emparelhamentos.', 'err');
+      }
+      await atualizarEstado();
+    }
+
+    async function simularTodos() {
       const intervalo = Number(intervaloInput.value);
-      const r = await fetch('/api/simulacao/iniciar', {
+      const r = await fetch('/api/simulacao/simular-todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ intervaloAtualizacaoSegundos: intervalo })
       });
-
       const data = await r.json().catch(() => ({}));
       if (r.status === 202) {
-        setMsg(data.message || 'Execução iniciada.', 'ok');
+        setMsg(data.message || 'Simulação iniciada.', 'ok');
       } else if (r.status === 409) {
-        setMsg(data.message || 'Já existe execução em curso.', 'warn');
+        setMsg(data.message || 'Não foi possível iniciar simulação.', 'warn');
       } else {
-        setMsg(data.message || 'Erro ao iniciar execução.', 'err');
+        setMsg(data.message || 'Erro ao iniciar simulação.', 'err');
       }
+      await atualizarEstado();
+    }
 
+    async function simularJogo(codigoJogo) {
+      const intervalo = Number(intervaloInput.value);
+      const r = await fetch(`/api/simulacao/simular-jogo/${encodeURIComponent(codigoJogo)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intervaloAtualizacaoSegundos: intervalo })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 202) {
+        setMsg(data.message || `Simulação de ${codigoJogo} iniciada.`, 'ok');
+      } else if (r.status === 409) {
+        setMsg(data.message || 'Não foi possível simular o jogo.', 'warn');
+      } else {
+        setMsg(data.message || 'Erro ao simular jogo.', 'err');
+      }
       await atualizarEstado();
     }
 
@@ -685,7 +775,16 @@
       localStorage.setItem('gd-theme', target);
     }
 
-    document.getElementById('btnIniciar').addEventListener('click', iniciar);
+    // Event delegation para os botões "Simular" individuais
+    document.getElementById('tabelaJogosBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-simular-jogo]');
+      if (!btn || btn.disabled) return;
+      const codigo = btn.dataset.simularJogo;
+      if (codigo) await simularJogo(codigo);
+    });
+
+    btnGerarEmparelhamentos.addEventListener('click', gerarEmparelhamentos);
+    btnSimularTodos.addEventListener('click', simularTodos);
     document.getElementById('btnAtualizar').addEventListener('click', atualizarEstado);
     document.getElementById('btnLimpar').addEventListener('click', limparHistorico);
     themeToggle.addEventListener('click', () => {
@@ -701,4 +800,3 @@
   </script>
 </body>
 </html>
-

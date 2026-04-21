@@ -109,6 +109,14 @@ SQL/credentials.sql
 **/.github/copilot/
 
 # ----------------------------
+# Claude Code
+# ----------------------------
+CLAUDE.md
+.claude/
+**/.claude/
+*.claude
+
+# ----------------------------
 # Angular / Node artifacts
 # ----------------------------
 **/node_modules/

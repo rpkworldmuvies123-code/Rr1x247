@@ -1,3 +1,4 @@
+using GeradorDados.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +12,11 @@ public sealed class SimulacaoPortalService(
     private readonly object _sync = new();
     private readonly int _maxEventos = Math.Max(1, maxEventos);
 
-    private bool _emExecucao;
+    private bool _publicandoCalendario;
+    private bool _simulandoTodos;
+    private readonly HashSet<string> _jogosEmSimulacao = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<JogoSimulacao> _jogosParaSimulacao = new();
+
     private DateTimeOffset? _ultimaExecucaoInicioUtc;
     private DateTimeOffset? _ultimaExecucaoFimUtc;
     private bool? _ultimaExecucaoSucesso;
@@ -19,19 +24,42 @@ public sealed class SimulacaoPortalService(
     private readonly List<EventoSimulacaoDto> _eventos = new();
     private readonly Dictionary<string, JogoEstadoDto> _jogos = new(StringComparer.OrdinalIgnoreCase);
 
+    private bool AlgumEmExecucao => _publicandoCalendario || _simulandoTodos || _jogosEmSimulacao.Count > 0;
+
     public EstadoSimulacaoDto ObterEstado()
     {
         lock (_sync)
         {
+            var emSimulacaoCodes = new HashSet<string>(_jogosEmSimulacao, StringComparer.OrdinalIgnoreCase);
+            var simTodos = _simulandoTodos;
+
             return new EstadoSimulacaoDto
             {
-                EmExecucao = _emExecucao,
+                EmExecucao = AlgumEmExecucao,
+                PublicandoCalendario = _publicandoCalendario,
+                SimulandoTodos = _simulandoTodos,
+                TemJogosParaSimulacao = _jogosParaSimulacao.Count > 0,
                 UltimaExecucaoInicioUtc = _ultimaExecucaoInicioUtc,
                 UltimaExecucaoFimUtc = _ultimaExecucaoFimUtc,
                 UltimaExecucaoSucesso = _ultimaExecucaoSucesso,
                 UltimaMensagem = _ultimaMensagem,
                 Eventos = _eventos.ToList(),
-                Jogos = _jogos.Values.OrderBy(j => j.CodigoJogo).ToList()
+                Jogos = _jogos.Values
+                    .OrderBy(j => j.CodigoJogo)
+                    .Select(j => new JogoEstadoDto
+                    {
+                        CodigoJogo = j.CodigoJogo,
+                        EquipaCasa = j.EquipaCasa,
+                        EquipaFora = j.EquipaFora,
+                        DataHoraInicioUtc = j.DataHoraInicioUtc,
+                        Estado = j.Estado,
+                        GolosCasa = j.GolosCasa,
+                        GolosVisitante = j.GolosVisitante,
+                        MinutoAtual = j.MinutoAtual,
+                        UltimoEnvioApi = j.UltimoEnvioApi,
+                        EmSimulacao = simTodos || emSimulacaoCodes.Contains(j.CodigoJogo)
+                    })
+                    .ToList()
             };
         }
     }
@@ -50,9 +78,7 @@ public sealed class SimulacaoPortalService(
             });
 
             if (_eventos.Count > _maxEventos)
-            {
                 _eventos.RemoveRange(0, _eventos.Count - _maxEventos);
-            }
 
             _ultimaMensagem = mensagem;
         }
@@ -111,9 +137,7 @@ public sealed class SimulacaoPortalService(
             jogo.GolosVisitante = golosVisitante;
             jogo.Estado = estado;
             if (minutoAtual.HasValue)
-            {
                 jogo.MinutoAtual = Math.Clamp(minutoAtual.Value, 0, 90);
-            }
         }
     }
 
@@ -129,9 +153,7 @@ public sealed class SimulacaoPortalService(
 
             jogo.Estado = estado;
             if (minutoAtual.HasValue)
-            {
                 jogo.MinutoAtual = Math.Clamp(minutoAtual.Value, 0, 90);
-            }
         }
     }
 
@@ -161,25 +183,23 @@ public sealed class SimulacaoPortalService(
         RegistarEvento("api", mensagem, codigoJogo, $"payload={payload}; resposta={resposta}");
     }
 
-    public bool TentarIniciarExecucao(string caminhoEquipas, int intervaloAtualizacaoSegundos)
+    public bool TentarPublicarCalendario(string caminhoEquipas)
     {
         lock (_sync)
         {
-            if (_emExecucao)
-            {
-                return false;
-            }
+            if (AlgumEmExecucao) return false;
 
-            _emExecucao = true;
+            _publicandoCalendario = true;
             _ultimaExecucaoInicioUtc = DateTimeOffset.UtcNow;
             _ultimaExecucaoFimUtc = null;
             _ultimaExecucaoSucesso = null;
-            _ultimaMensagem = $"Execução iniciada com intervalo {intervaloAtualizacaoSegundos}s.";
+            _ultimaMensagem = "A publicar calendário...";
             _jogos.Clear();
+            _jogosParaSimulacao.Clear();
         }
 
-        RegistarEvento("separador", "--- Nova simulação iniciada ---");
-        RegistarEvento("execucao", "Execução iniciada pelo portal.", detalhe: $"intervalo={intervaloAtualizacaoSegundos}s");
+        RegistarEvento("separador", "--- Nova publicação de calendário ---");
+        RegistarEvento("execucao", "Publicação de calendário iniciada pelo portal.");
 
         _ = Task.Run(async () =>
         {
@@ -187,34 +207,36 @@ public sealed class SimulacaoPortalService(
             {
                 using var scope = scopeFactory.CreateScope();
                 var orquestrador = scope.ServiceProvider.GetRequiredService<OrquestradorJornada>();
-                var sucesso = await orquestrador.ExecutarProximaJornadaAsync(caminhoEquipas, intervaloAtualizacaoSegundos);
+                var jogos = await orquestrador.PublicarCalendarioAsync(caminhoEquipas);
 
                 lock (_sync)
                 {
-                    _ultimaExecucaoSucesso = sucesso;
-                    _ultimaMensagem = sucesso
-                        ? "Execução concluída com sucesso."
-                        : "Execução terminada sem criar/simular jogos (ver logs).";
+                    _jogosParaSimulacao.AddRange(jogos);
+                    _ultimaExecucaoSucesso = jogos.Count > 0;
+                    _ultimaMensagem = jogos.Count > 0
+                        ? $"Calendário publicado: {jogos.Count} jogos criados. Pronto para simulação."
+                        : "Nenhum jogo foi criado (ver logs).";
                 }
 
-                RegistarEvento("execucao", sucesso ? "Execução concluída com sucesso." : "Execução terminou sem simulação.");
+                RegistarEvento("execucao", jogos.Count > 0
+                    ? $"Calendário publicado: {jogos.Count} jogos criados."
+                    : "Publicação terminou sem criar jogos.");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Erro na execução disparada pelo portal.");
+                logger.LogError(ex, "Erro na publicação do calendário.");
                 lock (_sync)
                 {
                     _ultimaExecucaoSucesso = false;
                     _ultimaMensagem = $"Erro: {ex.Message}";
                 }
-
-                RegistarEvento("erro", $"Erro durante a execução: {ex.Message}");
+                RegistarEvento("erro", $"Erro na publicação: {ex.Message}");
             }
             finally
             {
                 lock (_sync)
                 {
-                    _emExecucao = false;
+                    _publicandoCalendario = false;
                     _ultimaExecucaoFimUtc = DateTimeOffset.UtcNow;
                 }
             }
@@ -223,11 +245,161 @@ public sealed class SimulacaoPortalService(
         return true;
     }
 
+    public (bool Iniciou, string Mensagem) TentarSimularTodos(int intervaloSegundos)
+    {
+        List<JogoSimulacao> jogosFrescos;
+
+        lock (_sync)
+        {
+            if (_publicandoCalendario)
+                return (false, "Não é possível simular enquanto o calendário está a ser publicado.");
+            if (_simulandoTodos)
+                return (false, "Simulação de todos os jogos já está em curso.");
+            if (_jogosEmSimulacao.Count > 0)
+                return (false, "Existem jogos individuais em simulação. Aguarde a conclusão.");
+            if (_jogosParaSimulacao.Count == 0)
+                return (false, "Não existem jogos. Gere os emparelhamentos primeiro.");
+
+            jogosFrescos = _jogosParaSimulacao
+                .Where(t => _jogos.TryGetValue(t.CodigoJogo, out var j) &&
+                            j.Estado.Equals("Agendado", StringComparison.OrdinalIgnoreCase))
+                .Select(t => new JogoSimulacao
+                {
+                    JogoId = t.JogoId,
+                    CodigoJogo = t.CodigoJogo,
+                    EquipaCasa = t.EquipaCasa,
+                    EquipaFora = t.EquipaFora,
+                    DataHoraInicio = t.DataHoraInicio,
+                    Estado = EstadoJogo.Agendado,
+                    GolosCasa = 0,
+                    GolosVisitante = 0,
+                    MinutoAtual = 0,
+                    Concluido = false
+                })
+                .ToList();
+
+            if (jogosFrescos.Count == 0)
+                return (false, "Não existem jogos no estado Agendado para simular.");
+
+            _simulandoTodos = true;
+            _ultimaExecucaoInicioUtc = DateTimeOffset.UtcNow;
+            _ultimaExecucaoFimUtc = null;
+            _ultimaExecucaoSucesso = null;
+            _ultimaMensagem = $"A simular {jogosFrescos.Count} jogos em paralelo...";
+        }
+
+        RegistarEvento("separador", $"--- Simulação paralela de {jogosFrescos.Count} jogos ---");
+        RegistarEvento("execucao", $"Simulação de todos os jogos iniciada.", detalhe: $"intervalo={intervaloSegundos}s");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var orquestrador = scope.ServiceProvider.GetRequiredService<OrquestradorJornada>();
+                await orquestrador.SimularTodosAsync(jogosFrescos, intervaloSegundos);
+
+                lock (_sync)
+                {
+                    _ultimaExecucaoSucesso = true;
+                    _ultimaMensagem = "Simulação concluída com sucesso.";
+                }
+                RegistarEvento("sucesso", "Simulação de todos os jogos concluída com sucesso.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Erro na simulação de todos os jogos.");
+                lock (_sync)
+                {
+                    _ultimaExecucaoSucesso = false;
+                    _ultimaMensagem = $"Erro na simulação: {ex.Message}";
+                }
+                RegistarEvento("erro", $"Erro durante simulação: {ex.Message}");
+            }
+            finally
+            {
+                lock (_sync)
+                {
+                    _simulandoTodos = false;
+                    _ultimaExecucaoFimUtc = DateTimeOffset.UtcNow;
+                }
+            }
+        });
+
+        return (true, $"Simulação de {jogosFrescos.Count} jogos iniciada.");
+    }
+
+    public (bool Iniciou, string Mensagem) TentarSimularJogo(string codigoJogo, int intervaloSegundos)
+    {
+        JogoSimulacao jogoFresco;
+
+        lock (_sync)
+        {
+            if (_publicandoCalendario)
+                return (false, "Não é possível simular enquanto o calendário está a ser publicado.");
+            if (_simulandoTodos)
+                return (false, "Simulação de todos os jogos está em curso.");
+            if (_jogosEmSimulacao.Contains(codigoJogo))
+                return (false, $"O jogo {codigoJogo} já está a ser simulado.");
+
+            var template = _jogosParaSimulacao.Find(j =>
+                j.CodigoJogo.Equals(codigoJogo, StringComparison.OrdinalIgnoreCase));
+            if (template == null)
+                return (false, $"Jogo {codigoJogo} não encontrado nos emparelhamentos gerados.");
+
+            if (!_jogos.TryGetValue(codigoJogo, out var jogoEstado) ||
+                !jogoEstado.Estado.Equals("Agendado", StringComparison.OrdinalIgnoreCase))
+                return (false, $"O jogo {codigoJogo} não está no estado Agendado.");
+
+            jogoFresco = new JogoSimulacao
+            {
+                JogoId = template.JogoId,
+                CodigoJogo = template.CodigoJogo,
+                EquipaCasa = template.EquipaCasa,
+                EquipaFora = template.EquipaFora,
+                DataHoraInicio = template.DataHoraInicio,
+                Estado = EstadoJogo.Agendado,
+                GolosCasa = 0,
+                GolosVisitante = 0,
+                MinutoAtual = 0,
+                Concluido = false
+            };
+
+            _jogosEmSimulacao.Add(codigoJogo);
+        }
+
+        RegistarEvento("execucao", $"Simulação individual iniciada: {codigoJogo}", codigoJogo,
+            $"intervalo={intervaloSegundos}s");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var orquestrador = scope.ServiceProvider.GetRequiredService<OrquestradorJornada>();
+                await orquestrador.SimularJogoAsync(jogoFresco, intervaloSegundos);
+
+                RegistarEvento("sucesso", $"Jogo {codigoJogo} simulado com sucesso.", codigoJogo);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Erro na simulação individual do jogo {Codigo}.", codigoJogo);
+                RegistarEvento("erro", $"Erro ao simular {codigoJogo}: {ex.Message}", codigoJogo);
+            }
+            finally
+            {
+                lock (_sync) _jogosEmSimulacao.Remove(codigoJogo);
+            }
+        });
+
+        return (true, $"Simulação de {codigoJogo} iniciada.");
+    }
+
     public bool TentarLimparHistorico(out string mensagem)
     {
         lock (_sync)
         {
-            if (_emExecucao)
+            if (AlgumEmExecucao)
             {
                 mensagem = "Não é possível limpar durante uma execução em curso.";
                 return false;
@@ -235,6 +407,7 @@ public sealed class SimulacaoPortalService(
 
             _eventos.Clear();
             _jogos.Clear();
+            _jogosParaSimulacao.Clear();
             _ultimaExecucaoInicioUtc = null;
             _ultimaExecucaoFimUtc = null;
             _ultimaExecucaoSucesso = null;
@@ -247,6 +420,9 @@ public sealed class SimulacaoPortalService(
     public sealed class EstadoSimulacaoDto
     {
         public bool EmExecucao { get; set; }
+        public bool PublicandoCalendario { get; set; }
+        public bool SimulandoTodos { get; set; }
+        public bool TemJogosParaSimulacao { get; set; }
         public DateTimeOffset? UltimaExecucaoInicioUtc { get; set; }
         public DateTimeOffset? UltimaExecucaoFimUtc { get; set; }
         public bool? UltimaExecucaoSucesso { get; set; }
@@ -275,6 +451,6 @@ public sealed class SimulacaoPortalService(
         public int GolosVisitante { get; set; }
         public int MinutoAtual { get; set; }
         public string UltimoEnvioApi { get; set; } = string.Empty;
+        public bool EmSimulacao { get; set; }
     }
 }
-

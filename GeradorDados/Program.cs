@@ -1,4 +1,4 @@
-﻿using GeradorDados.Services;
+using GeradorDados.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options => { options.ListenAnyIP(8080); });
@@ -39,7 +39,6 @@ logger.LogInformation("GeradorDados Web iniciado com sucesso.");
 logger.LogInformation("API Resultados: {BaseUrl}", app.Configuration["ApiResultados:BaseUrl"]);
 logger.LogInformation("Caminho equipas: {CaminhoEquipas}", caminhoEquipas);
 
-
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -59,30 +58,46 @@ app.MapGet("/api/config", () => Results.Ok(new
     apiResultadosBaseUrl = app.Configuration["ApiResultados:BaseUrl"]
 }));
 
-app.MapPost("/api/simulacao/iniciar", (IniciarSimulacaoRequest? request) =>
+app.MapPost("/api/simulacao/publicar-calendario", () =>
+{
+    var iniciou = portalService.TentarPublicarCalendario(caminhoEquipas);
+    if (!iniciou)
+        return Results.Conflict(new { message = "Já existe uma operação em curso." });
+
+    return Results.Accepted("/api/estado", new { message = "Publicação de calendário iniciada." });
+});
+
+app.MapPost("/api/simulacao/simular-todos", (SimularRequest? request) =>
 {
     var intervalo = request?.IntervaloAtualizacaoSegundos ?? intervaloDefault;
     if (intervalo < 1)
-    {
         return Results.BadRequest(new { message = "intervaloAtualizacaoSegundos deve ser >= 1." });
-    }
 
-    var iniciou = portalService.TentarIniciarExecucao(caminhoEquipas, intervalo);
+    var (iniciou, mensagem) = portalService.TentarSimularTodos(intervalo);
     if (!iniciou)
-    {
-        return Results.Conflict(new { message = "Já existe uma execução em curso." });
-    }
+        return Results.Conflict(new { message = mensagem });
 
-    return Results.Accepted("/api/estado", new { message = "Execução iniciada.", intervaloAtualizacaoSegundos = intervalo });
+    return Results.Accepted("/api/estado", new { message = mensagem, intervaloAtualizacaoSegundos = intervalo });
+});
+
+app.MapPost("/api/simulacao/simular-jogo/{codigoJogo}", (string codigoJogo, SimularRequest? request) =>
+{
+    var intervalo = request?.IntervaloAtualizacaoSegundos ?? intervaloDefault;
+    if (intervalo < 1)
+        return Results.BadRequest(new { message = "intervaloAtualizacaoSegundos deve ser >= 1." });
+
+    var (iniciou, mensagem) = portalService.TentarSimularJogo(codigoJogo, intervalo);
+    if (!iniciou)
+        return Results.Conflict(new { message = mensagem });
+
+    return Results.Accepted("/api/estado", new { message = mensagem });
 });
 
 app.MapPost("/api/estado/limpar", () =>
 {
     var limpou = portalService.TentarLimparHistorico(out var mensagem);
     if (!limpou)
-    {
         return Results.Conflict(new { message = mensagem });
-    }
 
     return Results.Ok(new { message = mensagem });
 });
@@ -94,15 +109,11 @@ return;
 static int LerInteiroPositivo(string? valor, int fallback)
 {
     if (int.TryParse(valor, out var parsed) && parsed >= 1)
-    {
         return parsed;
-    }
-
     return fallback;
 }
 
-public sealed class IniciarSimulacaoRequest
+public sealed class SimularRequest
 {
     public int? IntervaloAtualizacaoSegundos { get; set; }
 }
-
