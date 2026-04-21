@@ -25,18 +25,20 @@
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-start;
-	gap: 0.85rem;
-	padding: 1rem 1.25rem;
+	gap: 0.75rem;
+	padding: 0.9rem 1.1rem;
 	background: var(--surface);
-	border-bottom: 0;
+	border-bottom: 1px solid var(--line);
 	box-shadow: var(--shadow-sm);
 	color: var(--text);
 }
 
 .brand {
-	font-size: 1.3rem;
-	font-weight: 800;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.45rem;
+	font-weight: 600;
 	margin-right: auto;
+	letter-spacing: -0.02em;
 }
 
 nav {
@@ -47,26 +49,47 @@ nav {
 
 .nav-link {
 	border-radius: var(--radius-sm);
-	border: 0;
+	border: 1px solid var(--link);
 	background: transparent;
 	color: var(--link);
 	font-weight: 600;
 	padding: 0.45rem 0.7rem;
-	transition: background-color 0.15s ease, border-color 0.15s ease;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .nav-link:hover {
 	background: var(--primary-soft);
 }
 
+.nav-link:active {
+	background: color-mix(in srgb, var(--primary-soft) 70%, transparent);
+}
+
 .theme-btn {
-	border: 0;
-	background: var(--surface-alt);
-	color: var(--text);
+	border: 1px solid var(--line-strong);
+	background: transparent;
+	color: var(--text-muted);
 	font-weight: 600;
+	width: 2.3rem;
+	height: 2.3rem;
+	padding: 0.35rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.theme-icon {
+	width: 1.15rem;
+	height: 1.15rem;
 }
 
 .theme-btn:hover {
+	border-color: var(--line-strong);
+	color: var(--text);
+	background: var(--surface-alt);
+}
+
+.theme-btn:active {
 	background: var(--primary-soft);
 }
 
@@ -77,9 +100,9 @@ nav {
 }
 
 .logout-btn {
-	border-radius: 8px;
-	border: 0;
-	background: var(--danger-soft);
+	border-radius: 0;
+	border: 1px solid var(--danger-text);
+	background: transparent;
 	color: var(--danger-text);
 	padding: 0.45rem 0.75rem;
 	cursor: pointer;
@@ -87,16 +110,26 @@ nav {
 }
 
 .logout-btn:hover {
-	background: color-mix(in srgb, var(--danger-soft) 82%, var(--surface));
+	border-color: var(--danger-text);
+	background: var(--danger-soft);
+}
+
+.logout-btn:active {
+	background: color-mix(in srgb, var(--danger-soft) 65%, transparent);
 }
 
 button {
 	border-radius: var(--radius-sm);
-	border: 0;
-	background: var(--primary-strong);
-	color: var(--text);
+	border: 1px solid var(--primary-strong);
+	background: transparent;
+	color: var(--primary-strong);
 	padding: 0.45rem 0.75rem;
 	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+button:active:not(:disabled) {
+	background: var(--primary-soft);
 }
 
 a:focus-visible,
@@ -106,30 +139,32 @@ button:focus-visible {
 }
 
 .topbar.admin-mode {
-	background: #ffffff;
-	color: #000000;
-	border-bottom: 1px solid #000000 !important;
-	box-shadow: none;
+	background: var(--surface);
+	color: var(--text);
+	border-bottom: 1px solid var(--line);
+	box-shadow: var(--shadow-sm);
 }
 
 .topbar.admin-mode .nav-link,
 .topbar.admin-mode .logout-btn,
 .topbar.admin-mode button {
-	background: #ffffff;
-	color: #000000;
-	border: 1px solid #000000 !important;
-	transition: none;
+	background: transparent;
+	color: var(--text);
+	border: 1px solid var(--line-strong) !important;
 }
 
 .topbar.admin-mode .nav-link:hover,
 .topbar.admin-mode .logout-btn:hover,
 .topbar.admin-mode button:hover {
-	background: #f0f0f0;
+	background: var(--surface-alt);
 }
 
-.topbar.admin-mode .theme-btn {
-	display: none;
+.topbar.admin-mode .nav-link:active,
+.topbar.admin-mode .logout-btn:active,
+.topbar.admin-mode button:active {
+	background: var(--primary-soft);
 }
+
 
 main {
 	min-height: calc(100dvh - 4.5rem);

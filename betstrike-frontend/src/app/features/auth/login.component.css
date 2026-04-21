@@ -6,25 +6,29 @@
   min-height: calc(100dvh - 4.5rem);
   display: grid;
   place-items: center;
-  padding: 1.25rem;
+  padding: 1.25rem 0;
 }
 
 .card {
   width: min(28rem, 100%);
   background: var(--surface);
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 1.5rem;
+  padding: 1rem 1rem 1.05rem;
   box-shadow: var(--shadow-lg);
 }
 
 h1 {
-  margin: 0;
+  margin: 0.1rem 0 0.35rem;
   color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin: 0.5rem 0 1.25rem;
+  margin: 0.35rem 0 1rem;
   color: var(--text-muted);
 }
 
@@ -43,24 +47,30 @@ input,
 select,
 button {
   border-radius: var(--radius-sm);
-  border: 0;
-  padding: 0.68rem;
-  font-size: 1rem;
-  background: var(--surface-alt);
+  border: 1px solid var(--line-strong);
+  padding: 0.48rem 0.56rem;
+  font-size: 0.92rem;
+  background: var(--surface);
   color: var(--text);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 button {
   margin-top: 0.75rem;
-  background: var(--primary-strong);
-  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--primary-strong);
   font-weight: 600;
   cursor: pointer;
 }
 
 button:hover {
-  background: var(--primary);
+  border-color: var(--line-strong);
+  background: var(--surface-alt);
+}
+
+button:active:not(:disabled) {
+  background: var(--surface-alt);
 }
 
 button:disabled {

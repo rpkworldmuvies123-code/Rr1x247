@@ -3,16 +3,16 @@
 }
 
 .page {
-  padding: 1.25rem;
+  padding: 1.25rem 0;
 }
 
 .panel {
-  max-width: 52rem;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   background: var(--surface);
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 1.25rem;
+  padding: 12px 92px;
   box-shadow: var(--shadow-lg);
 }
 
@@ -27,6 +27,8 @@ a:hover {
 
 h1 {
   margin: 0.6rem 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .meta {
@@ -34,10 +36,9 @@ h1 {
 }
 
 .score {
-  font-size: 2.2rem;
-  font-weight: 800;
-  margin: 0.9rem 0;
-  letter-spacing: 0.02em;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0.7rem 0;
 }
 
 .error {
