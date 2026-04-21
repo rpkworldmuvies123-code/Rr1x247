@@ -1,27 +1,27 @@
 :host {
   display: block;
-  background: #ffffff;
-  color: #000000;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .page {
-  padding: 12px;
+  padding: 12px 0;
 }
 
 .panel {
-  max-width: 980px;
-  margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #000000 !important;
+  max-width: none;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 0;
-  padding: 12px;
-  box-shadow: none;
+  padding: 12px 92px;
+  box-shadow: var(--shadow-lg);
 }
 
 .add-section,
 .list-section {
-  background: #ffffff;
-  border: 1px solid #000000 !important;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 0;
   padding: 10px;
   margin-top: 10px;
@@ -42,40 +42,46 @@ form {
 label {
   font-weight: 700;
   font-size: 14px;
+  color: var(--text-muted);
 }
 
 input,
 select,
 button {
-  border: 1px solid #000000 !important;
+  border: 1px solid var(--line-strong);
   border-radius: 0;
   padding: 4px 6px;
   font-size: 14px;
-  background: #ffffff;
-  color: #000000;
+  background: var(--surface);
+  color: var(--text);
 }
 
 button {
   font-weight: 700;
   cursor: pointer;
-  background: #e6e6e6;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+button:active:not(:disabled) {
+  background: #f0f0f0;
 }
 
 .feedback {
-  border: 1px solid #000000 !important;
+  border: 1px solid var(--line);
   border-radius: 0;
   padding: 6px;
   margin-bottom: 10px;
 }
 
 .feedback.success {
-  background: #ffffff;
-  color: #000000;
+  background: rgb(102 213 142 / 10%);
+  color: var(--success-text);
 }
 
 .feedback.error {
-  background: #ffffff;
-  color: #000000;
+  background: var(--danger-soft);
+  color: var(--error-text);
 }
 
 .games-list {
@@ -93,9 +99,9 @@ button {
   justify-content: space-between;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #000000 !important;
+  border: 1px solid var(--line);
   border-radius: 0;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .game-meta {
@@ -110,7 +116,7 @@ button {
 
 .small {
   margin: 0;
-  color: #000000;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -122,18 +128,18 @@ button {
 }
 
 .edit-btn {
-  background: #e6e6e6;
-  color: #000000;
+  background: transparent;
+  color: var(--primary-strong);
 }
 
 .remove-btn {
-  background: #e6e6e6;
-  color: #000000;
+  background: transparent;
+  color: var(--danger-text);
 }
 
 .ghost-btn {
-  background: #e6e6e6;
-  color: #000000;
+  background: transparent;
+  color: var(--text-muted);
 }
 
 button:disabled {
@@ -153,9 +159,9 @@ button:disabled {
 
 .edit-dialog {
   width: min(480px, 100%);
-  background: #ffffff;
-  border: 1px solid #000000 !important;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 0;
-  box-shadow: none;
+  box-shadow: var(--shadow-lg);
   padding: 10px;
 }

@@ -18,7 +18,7 @@ public class SimuladorJogo
     // Intervalo de atualizacao em segundos (10s = 10 minutos no jogo)
     private readonly int _intervaloAtualizacaoSegundos;
     
-    // Probabilidades de golos por intervalo para atingir 2-3 golos/jogo
+<-    // Probabilidades de golos por intervalo para atingir 2-3 golos/jogo
     // Com 9 intervalos: 0.15 * 9 = 1.35 e 0.12 * 9 = 1.08 = ~2.43 golos/jogo
     private const double ProbabilidadeGolosCasa = 0.15;      // ~1.35 golos em 90 minutos
     private const double ProbabilidadeGolosVisitante = 0.12; // ~1.08 golos em 90 minutos

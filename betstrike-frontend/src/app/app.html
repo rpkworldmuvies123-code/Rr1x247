@@ -3,21 +3,34 @@
 <header class="topbar" [class.admin-mode]="isAdminMode()">
   <div class="brand">BetStrike</div>
 
-  @if (!isAdminMode()) {
-    <button
-      type="button"
-      class="theme-btn"
-      [attr.aria-pressed]="isLightMode()"
-      aria-label="Alternar entre modo escuro e claro"
-      (click)="toggleTheme()"
-    >
-      @if (isLightMode()) {
-        Modo escuro
-      } @else {
-        Modo claro
-      }
-    </button>
-  }
+  <button
+    type="button"
+    class="theme-btn"
+    [attr.aria-pressed]="isLightMode()"
+    [attr.aria-label]="isLightMode() ? 'Mudar para modo escuro' : 'Mudar para modo claro'"
+    [attr.title]="isLightMode() ? 'Mudar para modo escuro' : 'Mudar para modo claro'"
+    (click)="toggleTheme()"
+  >
+    @if (isLightMode()) {
+      <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3 7.2 7.2 0 0 0 21 12.8Z" fill="currentColor" />
+      </svg>
+    } @else {
+      <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="4" fill="currentColor" />
+        <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="12" y1="1.8" x2="12" y2="4.3" />
+          <line x1="12" y1="19.7" x2="12" y2="22.2" />
+          <line x1="1.8" y1="12" x2="4.3" y2="12" />
+          <line x1="19.7" y1="12" x2="22.2" y2="12" />
+          <line x1="4.7" y1="4.7" x2="6.4" y2="6.4" />
+          <line x1="17.6" y1="17.6" x2="19.3" y2="19.3" />
+          <line x1="17.6" y1="6.4" x2="19.3" y2="4.7" />
+          <line x1="4.7" y1="19.3" x2="6.4" y2="17.6" />
+        </g>
+      </svg>
+    }
+  </button>
 
   @if (isAuthenticated()) {
 
