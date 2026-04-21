@@ -70,10 +70,10 @@ app.MapPost("/api/simulacao/iniciar", (IniciarSimulacaoRequest? request) =>
     var iniciou = portalService.TentarIniciarExecucao(caminhoEquipas, intervalo);
     if (!iniciou)
     {
-        return Results.Conflict(new { message = "Ja existe uma execucao em curso." });
+        return Results.Conflict(new { message = "Já existe uma execução em curso." });
     }
 
-    return Results.Accepted("/api/estado", new { message = "Execucao iniciada.", intervaloAtualizacaoSegundos = intervalo });
+    return Results.Accepted("/api/estado", new { message = "Execução iniciada.", intervaloAtualizacaoSegundos = intervalo });
 });
 
 app.MapPost("/api/estado/limpar", () =>
