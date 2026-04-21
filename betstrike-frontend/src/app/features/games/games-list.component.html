@@ -1,4 +1,15 @@
 <main class="page" aria-labelledby="games-title">
+  @if (goalNotifications().length > 0) {
+    <section class="goal-notifications" aria-live="polite" aria-relevant="additions">
+      @for (notification of goalNotifications(); track notification.id) {
+        <div class="goal-panel" role="status">
+          <p class="goal-label">Golo</p>
+          <p>{{ notification.message }}</p>
+        </div>
+      }
+    </section>
+  }
+
   <section class="panel">
     <h1 id="games-title">Jogos da Jornada</h1>
 
@@ -49,6 +60,7 @@
               <th scope="col">Estado</th>
               <th scope="col">Marcador</th>
               <th scope="col">Detalhes</th>
+              <th scope="col">Apostar</th>
             </tr>
           </thead>
           <tbody>
@@ -62,6 +74,9 @@
                 <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
                 <td>
                   <a [routerLink]="['/games', game.id]">Ver</a>
+                </td>
+                <td>
+                  <a [routerLink]="['/games', game.id, 'bet']">Apostar</a>
                 </td>
               </tr>
             }

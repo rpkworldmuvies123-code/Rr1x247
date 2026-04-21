@@ -18,14 +18,14 @@
   box-shadow: var(--shadow-lg);
 }
 
-h1 {
-  margin: 0.1rem 0 0.35rem;
-  color: var(--text);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1.6rem, 3vw, 2.15rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
+.card-logo {
+   display: block;
+   margin: 0 auto 1rem;
+   max-height: 10rem;
+   max-width: 100%;
+   width: auto;
+   object-fit: contain;
+ }
 
 .subtitle {
   margin: 0.35rem 0 1rem;
@@ -89,5 +89,29 @@ select:focus-visible {
   margin: 0;
   color: var(--error-text);
   font-size: 0.9rem;
+}
+
+.auth-link {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.auth-link a {
+  color: var(--link);
+  text-decoration: none;
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+
+.auth-link a:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.auth-link a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 

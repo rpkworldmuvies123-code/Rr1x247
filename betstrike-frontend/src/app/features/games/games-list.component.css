@@ -6,6 +6,34 @@
   padding: 1.25rem 0;
 }
 
+.goal-notifications {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.goal-panel {
+  background: var(--surface-alt);
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding: 0.75rem 1rem;
+  box-shadow: var(--shadow-sm);
+  animation: goal-panel-in 0.2s ease;
+}
+
+.goal-label {
+  margin: 0 0 0.2rem;
+  color: var(--success-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.goal-panel p {
+  margin: 0;
+}
+
 .panel {
   max-width: none;
   margin: 0;
@@ -126,5 +154,17 @@ a:hover {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+@keyframes goal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 

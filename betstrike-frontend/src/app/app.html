@@ -1,7 +1,7 @@
-<a class="skip-link" href="#main-content">Saltar para conteudo principal</a>
+<a class="skip-link" href="#main-content">Saltar para conteúdo principal</a>
 
 <header class="topbar" [class.admin-mode]="isAdminMode()">
-  <div class="brand">BetStrike</div>
+  <img src="assets/txt.png" alt="BetStrike" class="brand" />
 
   <button
     type="button"
@@ -35,8 +35,7 @@
   @if (isAuthenticated()) {
 
     <div class="session">
-      <span>Ola, {{ username() }}</span>
-      <button type="button" class="logout-btn" (click)="logout()">Terminar sessao</button>
+      <button type="button" class="logout-btn" (click)="logout()">Terminar sessão</button>
     </div>
   }
 </header>

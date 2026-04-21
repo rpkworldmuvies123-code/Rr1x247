@@ -1,6 +1,6 @@
 <main class="page" aria-labelledby="login-title">
   <section class="card">
-    <h1 id="login-title">BetStrike</h1>
+    <img src="assets/completo.png" alt="BetStrike" id="login-title" class="card-logo" />
     <p class="subtitle">Acede para visualizar jogos e resultados em tempo real.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="isSubmitting()">
@@ -30,12 +30,6 @@
         <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 4 caracteres.</p>
       }
 
-      <label for="role">Perfil</label>
-      <select id="role" formControlName="role">
-        <option value="user">Utilizador</option>
-        <option value="admin">Administrador</option>
-      </select>
-
       <button type="submit" [disabled]="isSubmitting()">
         @if (isSubmitting()) {
           A autenticar...
@@ -48,6 +42,10 @@
         <p class="error" role="alert" aria-live="assertive">{{ errorMessage() }}</p>
       }
     </form>
+
+    <p class="auth-link">
+      Nao tem conta? <a routerLink="/register">Registar</a>
+    </p>
   </section>
 </main>
 
