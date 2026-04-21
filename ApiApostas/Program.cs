@@ -1,21 +1,109 @@
+using System.Text;
+using ApiApostas.Data;
+using ApiApostas.Models;
+using ApiApostas.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(8080));
 
-// Add services to the container.
+// EF + Identity
+builder.Services.AddDbContext<ApostasDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Apostas")));
 
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequiredLength = 6;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireLowercase = false;
+    })
+    .AddEntityFrameworkStores<ApostasDbContext>()
+    .AddDefaultTokenProviders();
+
+// JWT
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+                ?? throw new InvalidOperationException("Jwt:Secret não configurado.");
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<DatabaseService>();
+builder.Services.AddHostedService<SincronizacaoService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Global error handler
+app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 {
-    app.MapOpenApi();
-}
+    var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    var (status, msg) = ex switch
+    {
+        DomainException de => (de.StatusCode, de.Message),
+        _ => (500, "Erro interno do servidor.")
+    };
+    ctx.Response.StatusCode = status;
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsJsonAsync(new { message = msg });
+}));
 
+app.MapOpenApi();
+app.MapScalarApiReference(opts => opts.WithTitle("BetStrike — API Apostas"));
+
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+
+// Seed: roles + admin user (schema gerido por SQL/apostas_setup.sql)
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    foreach (var role in new[] { "Admin", "User" })
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var adminEmail = app.Configuration["Admin:Email"] ?? "admin@betstrike.pt";
+    var adminPassword = app.Configuration["Admin:Password"] ?? "Admin123!";
+
+    if (await userManager.FindByEmailAsync(adminEmail) == null)
+    {
+        var admin = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            NomeCompleto = "Administrador BetStrike",
+            DataRegisto = DateTime.UtcNow
+        };
+        var result = await userManager.CreateAsync(admin, adminPassword);
+        if (result.Succeeded)
+            await userManager.AddToRoleAsync(admin, "Admin");
+    }
+}
 
 app.Run();

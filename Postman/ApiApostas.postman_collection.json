@@ -1,0 +1,795 @@
+{
+  "info": {
+    "_postman_id": "betstrike-apostas-v2",
+    "name": "BetStrike — API Apostas",
+    "description": "Testes completos da API Apostas. Correr em ordem (Runner). Auth primeiro, depois Fluxo Principal, depois Pagamentos.\n\nVariáveis: baseUrl, token, adminToken, codigoJogoTeste, apostaId.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",         "value": "http://localhost:5141", "type": "string" },
+    { "key": "token",           "value": "",                      "type": "string" },
+    { "key": "token2",          "value": "",                      "type": "string" },
+    { "key": "adminToken",      "value": "",                      "type": "string" },
+    { "key": "codigoJogoTeste", "value": "FUT-2099-9901",         "type": "string" },
+    { "key": "apostaId",        "value": "",                      "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Registar utilizador",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token', pm.response.json().token);",
+            "  pm.test('Token recebido no registo', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+            "}",
+            "pm.test('Registo aceite (200) ou utilizador já existe (400)', () => {",
+            "  pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste@betstrike.pt\",\n  \"password\": \"Teste123\",\n  \"nomeCompleto\": \"Utilizador Teste\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/registar", "host": ["{{baseUrl}}"], "path": ["api","auth","registar"] }
+          }
+        },
+        {
+          "name": "Login utilizador",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token', pm.response.json().token);",
+            "  pm.test('Token recebido', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste@betstrike.pt\",\n  \"password\": \"Teste123\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Login admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('adminToken', pm.response.json().token);",
+            "  pm.test('Admin token recebido', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@betstrike.pt\",\n  \"password\": \"Admin123!\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Perfil do utilizador (GET /me)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Tem email', () => pm.expect(pm.response.json().email).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          }
+        },
+        {
+          "name": "[Edge] Email duplicado → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste@betstrike.pt\",\n  \"password\": \"Teste123\",\n  \"nomeCompleto\": \"Duplicado\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/registar", "host": ["{{baseUrl}}"], "path": ["api","auth","registar"] }
+          }
+        },
+        {
+          "name": "[Edge] Password errada → 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste@betstrike.pt\",\n  \"password\": \"errada\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "[Edge] Sem token → 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          }
+        },
+        {
+          "name": "Registar utilizador 2 (para testes de permissão)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token2', pm.response.json().token);",
+            "}",
+            "pm.test('200 ou 400 (já existe)', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste2@betstrike.pt\",\n  \"password\": \"Teste123\",\n  \"nomeCompleto\": \"Utilizador Teste 2\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/registar", "host": ["{{baseUrl}}"], "path": ["api","auth","registar"] }
+          }
+        },
+        {
+          "name": "Login utilizador 2",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token2', pm.response.json().token);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste2@betstrike.pt\",\n  \"password\": \"Teste123\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2. Jogos — Consultas (sem dependência de estado)",
+      "item": [
+        {
+          "name": "Listar todos os jogos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+        {
+          "name": "Listar jogos — filtro estado=1 (Agendado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/jogos?estado=1", "host": ["{{baseUrl}}"], "path": ["api","jogos"], "query": [{"key":"estado","value":"1"}] }
+          }
+        },
+        {
+          "name": "Listar jogos — filtro tipoCompeticao",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/jogos?tipoCompeticao=Liga Portugal", "host": ["{{baseUrl}}"], "path": ["api","jogos"], "query": [{"key":"tipoCompeticao","value":"Liga Portugal"}] }
+          }
+        },
+        {
+          "name": "[Edge] Jogo inexistente → 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/jogos/FUT-0000-0000", "host": ["{{baseUrl}}"], "path": ["api","jogos","FUT-0000-0000"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3. Fluxo Principal (Jogo + Apostas em sequência)",
+      "item": [
+
+        {
+          "name": "Criar jogo (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "type": "text/javascript", "exec": [
+                "// Gera código único apenas aqui — uma vez por run",
+                "const d = new Date();",
+                "const mm = String(d.getMinutes()).padStart(2, '0');",
+                "const ss = String(d.getSeconds()).padStart(2, '0');",
+                "pm.collectionVariables.set('codigoJogoTeste', 'FUT-2099-' + mm + ss);"
+              ]}
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201 && pm.response.json().codigoJogo) {",
+                "  pm.collectionVariables.set('codigoJogoTeste', pm.response.json().codigoJogo);",
+                "}"
+              ]}
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"dataHoraInicio\": \"2099-12-01T20:00:00Z\",\n  \"equipaCasa\": \"Benfica\",\n  \"equipaFora\": \"Porto\",\n  \"tipoCompeticao\": \"Liga Portugal\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+
+        {
+          "name": "Obter jogo criado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Tem CodigoJogo', () => pm.expect(pm.response.json()).to.have.property('CodigoJogo'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Código de jogo duplicado → 409",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+            "pm.test('Mensagem de erro', () => pm.expect(pm.response.json().message).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"dataHoraInicio\": \"2099-12-01T20:00:00Z\",\n  \"equipaCasa\": \"Sporting\",\n  \"equipaFora\": \"Braga\",\n  \"tipoCompeticao\": \"Liga Portugal\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Criar jogo sem permissão admin → 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 ou 403', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"FUT-2099-8888\",\n  \"dataHoraInicio\": \"2099-12-01T20:00:00Z\",\n  \"equipaCasa\": \"Sporting\",\n  \"equipaFora\": \"Braga\",\n  \"tipoCompeticao\": \"Liga Portugal\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos", "host": ["{{baseUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+
+        {
+          "name": "Depositar saldo (antes de apostar)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"valor\": 200.00 }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/depositar", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","depositar"] }
+          }
+        },
+
+        {
+          "name": "Colocar aposta — vitória casa (1)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "if (pm.response.code === 201) {",
+            "  pm.collectionVariables.set('apostaId', String(pm.response.json().id));",
+            "  pm.test('apostaId definido', () => pm.expect(pm.response.json().id).to.be.a('number'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 10.00,\n  \"oddMomento\": 1.75\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "Colocar aposta — empate (X)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"X\",\n  \"montanteApostado\": 5.00,\n  \"oddMomento\": 3.20\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "Listar apostas do utilizador",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "Listar apostas — filtro por jogo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas?codigoJogo={{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","apostas"], "query": [{"key":"codigoJogo","value":"{{codigoJogoTeste}}"}] }
+          }
+        },
+
+        {
+          "name": "Listar apostas — filtro estado=1 (Pendente)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas?estado=1", "host": ["{{baseUrl}}"], "path": ["api","apostas"], "query": [{"key":"estado","value":"1"}] }
+          }
+        },
+
+        {
+          "name": "Obter aposta por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas/{{apostaId}}", "host": ["{{baseUrl}}"], "path": ["api","apostas","{{apostaId}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Cancelar aposta de outro utilizador → 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+          ]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token2}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas/{{apostaId}}", "host": ["{{baseUrl}}"], "path": ["api","apostas","{{apostaId}}"] }
+          }
+        },
+
+        {
+          "name": "Cancelar aposta (jogo Agendado) → 204",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas/{{apostaId}}", "host": ["{{baseUrl}}"], "path": ["api","apostas","{{apostaId}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Saldo insuficiente → 4xx",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Erro de saldo', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 999999.00,\n  \"oddMomento\": 1.50\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Tipo de aposta inválido → 4xx",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Erro tipo aposta', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"3\",\n  \"montanteApostado\": 5.00,\n  \"oddMomento\": 2.00\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Odd inválida (≤ 1.0) → 4xx",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Erro odd', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 5.00,\n  \"oddMomento\": 0.90\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Montante negativo → 4xx",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Erro montante', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": -5.00,\n  \"oddMomento\": 1.50\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "Recolocar aposta 1 (para testar EmCurso)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "if (pm.response.code === 201) {",
+            "  pm.collectionVariables.set('apostaId', String(pm.response.json().id));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 10.00,\n  \"oddMomento\": 1.75\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "Atualizar jogo → EmCurso (2)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": 2\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "Atualizar marcador → 1-0",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"golosCasa\": 1,\n  \"golosVisitante\": 0\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Cancelar aposta em jogo EmCurso → 409",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+            "pm.test('Mensagem refere Agendado', () => {",
+            "  const msg = pm.response.json().message;",
+            "  pm.expect(msg).to.be.a('string').and.to.include('Agendado');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/apostas/{{apostaId}}", "host": ["{{baseUrl}}"], "path": ["api","apostas","{{apostaId}}"] }
+          }
+        },
+
+        {
+          "name": "Atualizar jogo → Finalizado (3)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": 3\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Transição de estado inválida (Finalizado → EmCurso) → 409",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('4xx em estado terminal', () => pm.expect(pm.response.code).to.be.oneOf([400, 409]));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": 2\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Remover jogo não-Agendado → 400/409",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('4xx jogo em estado terminal', () => pm.expect(pm.response.code).to.be.oneOf([400, 409]));"
+          ]}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Apostar em jogo Finalizado → 4xx",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Jogo finalizado', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 5.00,\n  \"oddMomento\": 1.50\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Sem autenticação nas apostas → 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/apostas", "host": ["{{baseUrl}}"], "path": ["api","apostas"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4. Resultados + Estatísticas",
+      "item": [
+        {
+          "name": "Inserir resultado (jogo Finalizado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "// 201: inserido com sucesso; 409: resultado já existe (auto-inserido ao finalizar)",
+            "pm.test('201 ou 409', () => pm.expect(pm.response.code).to.be.oneOf([201, 409]));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"golosCasa\": 1,\n  \"golosVisitante\": 0\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/resultados", "host": ["{{baseUrl}}"], "path": ["api","resultados"] }
+          }
+        },
+
+        {
+          "name": "Obter resultado de jogo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/resultados/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","resultados","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Inserir resultado duplicado → 409",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('4xx conflito', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogoTeste}}\",\n  \"golosCasa\": 3,\n  \"golosVisitante\": 0\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/resultados", "host": ["{{baseUrl}}"], "path": ["api","resultados"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Resultado de jogo inexistente → 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/resultados/FUT-0000-0000", "host": ["{{baseUrl}}"], "path": ["api","resultados","FUT-0000-0000"] }
+          }
+        },
+
+        {
+          "name": "Estatísticas por jogo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/estatisticas/jogos/{{codigoJogoTeste}}", "host": ["{{baseUrl}}"], "path": ["api","estatisticas","jogos","{{codigoJogoTeste}}"] }
+          }
+        },
+
+        {
+          "name": "Estatísticas por competição",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/estatisticas/competicoes/Liga Portugal", "host": ["{{baseUrl}}"], "path": ["api","estatisticas","competicoes","Liga Portugal"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Estatísticas jogo inexistente → 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/estatisticas/jogos/FUT-0000-0000", "host": ["{{baseUrl}}"], "path": ["api","estatisticas","jogos","FUT-0000-0000"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5. Pagamentos",
+      "item": [
+        {
+          "name": "Consultar saldo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/saldo", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        },
+
+        {
+          "name": "Depositar saldo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"valor\": 50.00 }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/depositar", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","depositar"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Depositar valor negativo → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"valor\": -10.00 }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/depositar", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","depositar"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Depositar valor zero → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"valor\": 0.00 }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/depositar", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","depositar"] }
+          }
+        },
+
+        {
+          "name": "[Edge] Saldo sem autenticação → 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pagamentos/saldo", "host": ["{{baseUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        }
+      ]
+    }
+
+  ]
+}

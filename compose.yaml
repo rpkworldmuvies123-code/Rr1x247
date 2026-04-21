@@ -21,6 +21,25 @@
       start_period: 30s
     restart: unless-stopped
 
+  db-init:
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    user: root
+    volumes:
+      - ./SQL:/sql:ro
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      RESULTADOS_DB_PASSWORD: "${RESULTADOS_DB_PASSWORD}"
+      APOSTAS_DB_PASSWORD: "${APOSTAS_DB_PASSWORD}"
+      DB_HOST: "mssql_db"
+      DB_PORT: "1433"
+    entrypoint: ["/bin/bash", "/sql/init-db.sh"]
+    networks:
+      - env_net
+    depends_on:
+      mssql_db:
+        condition: service_healthy
+    restart: "no"
+
   geradordados:
     image: geradordados-web
     build:
@@ -37,8 +56,6 @@
     networks:
       - env_net
     depends_on:
-      mssql_db:
-        condition: service_healthy
       apiresultados:
         condition: service_healthy
 
@@ -66,18 +83,39 @@
       retries: 20
       start_period: 20s
     depends_on:
-      mssql_db:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
 
   apiapostas:
     image: apiapostas
     build:
       context: .
       dockerfile: ApiApostas/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Apostas: "Server=${APOSTAS_DB_HOST:-mssql_db},${APOSTAS_DB_PORT:-1433};Database=${APOSTAS_DB_NAME:-betstrike-apostas};User Id=${APOSTAS_DB_USER:-apostas};Password=${APOSTAS_DB_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "betstrike-apostas"
+      Jwt__Audience: "betstrike-frontend"
+      Admin__Email: "${ADMIN_EMAIL:-admin@betstrike.pt}"
+      Admin__Password: "${ADMIN_PASSWORD}"
+      ApiResultados__BaseUrl: "http://apiresultados:8080"
+      Sincronizacao__IntervaloSegundos: "${APOSTAS_SYNC_INTERVALO:-5}"
+    ports:
+      - "${APIAPOSTAS_PORT:-5141}:8080"
     networks:
       - env_net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
     depends_on:
-      mssql_db:
+      db-init:
+        condition: service_completed_successfully
+      apiresultados:
         condition: service_healthy
 
   apipagamentos:

@@ -1,5 +1,4 @@
 ﻿using GeradorDados.Models;
-using Microsoft.Extensions.Logging;
 
 namespace GeradorDados.Services;
 
@@ -7,35 +6,26 @@ namespace GeradorDados.Services;
 /// Simulador de um jogo de futebol individual.
 /// Simula a progressão de um jogo ao longo de 90 minutos, gerando golos aleatoriamente.
 /// </summary>
-public class SimuladorJogo
+public class SimuladorJogo(
+    JogoSimulacao jogo,
+    HttpClientService httpClient,
+    SimulacaoPortalService portalService,
+    ILogger<SimuladorJogo> logger,
+    int intervaloAtualizacaoSegundos)
 {
-    private readonly JogoSimulacao _jogo;
-    private readonly HttpClientService _httpClient;
-    private readonly ILogger<SimuladorJogo> _logger;
-    private readonly SimulacaoPortalService _portalService;
+    private readonly JogoSimulacao _jogo = jogo;
+    private readonly HttpClientService _httpClient = httpClient;
+    private readonly ILogger<SimuladorJogo> _logger = logger;
+    private readonly SimulacaoPortalService _portalService = portalService;
     private readonly Random _random = new();
 
     // Intervalo de atualizacao em segundos (10s = 10 minutos no jogo)
-    private readonly int _intervaloAtualizacaoSegundos;
+    private readonly int _intervaloAtualizacaoSegundos = Math.Max(1, intervaloAtualizacaoSegundos);
     
-<-    // Probabilidades de golos por intervalo para atingir 2-3 golos/jogo
+    // Probabilidades de golos por intervalo para atingir 2-3 golos/jogo
     // Com 9 intervalos: 0.15 * 9 = 1.35 e 0.12 * 9 = 1.08 = ~2.43 golos/jogo
     private const double ProbabilidadeGolosCasa = 0.15;      // ~1.35 golos em 90 minutos
     private const double ProbabilidadeGolosVisitante = 0.12; // ~1.08 golos em 90 minutos
-
-    public SimuladorJogo(
-        JogoSimulacao jogo,
-        HttpClientService httpClient,
-        SimulacaoPortalService portalService,
-        ILogger<SimuladorJogo> logger,
-        int intervaloAtualizacaoSegundos)
-    {
-        _jogo = jogo;
-        _httpClient = httpClient;
-        _portalService = portalService;
-        _logger = logger;
-        _intervaloAtualizacaoSegundos = Math.Max(1, intervaloAtualizacaoSegundos);
-    }
 
     /// <summary>
     /// Executa a simulação do jogo de forma assíncrona.
