@@ -50,6 +50,22 @@
           <dd>{{ stateLabel() }} ({{ game().estadoDoJogo }})</dd>
         </div>
       </dl>
+
+      <p><strong>Saldo atual:</strong>
+        @if (walletBalance() !== null) {
+          {{ walletBalance() }} EUR
+        } @else {
+          indisponivel
+        }
+      </p>
+
+      <form [formGroup]="depositForm" (ngSubmit)="depositBalance()" novalidate>
+        <label for="deposit-value">Depositar saldo</label>
+        <input id="deposit-value" type="number" step="0.01" min="0.01" formControlName="value" />
+        <button type="submit" [disabled]="isDepositing()">
+          @if (isDepositing()) { A depositar... } @else { Depositar }
+        </button>
+      </form>
     </section>
 
     <section class="bet-card" aria-labelledby="bet-options-title">
@@ -69,7 +85,23 @@
           }
         </fieldset>
 
-        <button type="submit">Confirmar aposta</button>
+        <label for="amount">Montante (EUR)</label>
+        <input id="amount" type="number" step="0.01" min="0.01" formControlName="amount" />
+
+        <label for="odd">Odd no momento</label>
+        <input id="odd" type="number" step="0.01" min="1.01" formControlName="odd" />
+
+        <button type="submit" [disabled]="isSubmittingBet() || !canBet()">
+          @if (isSubmittingBet()) {
+            A registar aposta...
+          } @else {
+            Confirmar aposta
+          }
+        </button>
+
+        @if (!canBet()) {
+          <p class="notice" role="status">Apenas jogos em estado Agendado ou Em Curso aceitam novas apostas.</p>
+        }
       </form>
     </section>
 

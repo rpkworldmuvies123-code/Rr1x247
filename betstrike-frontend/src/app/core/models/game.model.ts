@@ -12,11 +12,13 @@ export interface Game {
   status: GameStatus;
   homeScore: number;
   awayScore: number;
+  estado?: number; // Estado numérico (1-5) da API
 }
 
 export interface GameDetails extends Game {
   venue?: string;
   events: ReadonlyArray<string>;
+  estado?: number;
 }
 
 export interface BettingGame {

@@ -4,17 +4,17 @@
     <p class="subtitle">Acede para visualizar jogos e resultados em tempo real.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="isSubmitting()">
-      <label for="username">Utilizador</label>
+      <label for="email">Email</label>
       <input
-        id="username"
-        type="text"
-        formControlName="username"
-        autocomplete="username"
-        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
-        aria-describedby="username-error"
+        id="email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        aria-describedby="email-error"
       />
-      @if (form.controls.username.invalid && form.controls.username.touched) {
-        <p id="username-error" class="error" role="alert">Introduz um nome de utilizador valido.</p>
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <p id="email-error" class="error" role="alert">Introduz um email valido.</p>
       }
 
       <label for="password">Palavra-passe</label>
@@ -27,7 +27,7 @@
         aria-describedby="password-error"
       />
       @if (form.controls.password.invalid && form.controls.password.touched) {
-        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 4 caracteres.</p>
+        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 6 caracteres.</p>
       }
 
       <button type="submit" [disabled]="isSubmitting()">

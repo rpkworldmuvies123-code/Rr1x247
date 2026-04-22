@@ -20,7 +20,7 @@ export class App {
 
   protected readonly isAuthenticated = computed(() => this.authService.isAuthenticated());
   protected readonly isAdmin = computed(() => this.authService.isAdmin());
-  protected readonly username = computed(() => this.authService.currentSession()?.username ?? '');
+  protected readonly username = computed(() => this.authService.currentSession()?.nomeCompleto ?? this.authService.currentSession()?.email ?? '');
   protected readonly isAdminMode = computed(() => this.isAuthenticated() && this.isAdmin());
   protected readonly themeMode = signal<ThemeMode>(this.readInitialTheme());
   protected readonly isLightMode = computed(() => this.themeMode() === 'light');

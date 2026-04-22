@@ -1,12 +1,13 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { timer } from 'rxjs';
-import { BackendApiService } from '../../core/api/backend-api.service';
+import { JogosService, JogoListaItemResponse } from '../../core/api/jogos.service';
 import {
   GAME_STATUS_LABEL,
+  GAME_STATE_LABEL,
   Game,
   GameFilters,
   GameStatus
@@ -25,7 +26,7 @@ interface GoalNotification {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class GamesListComponent {
-  private readonly backendApiService = inject(BackendApiService);
+  private readonly jogosService = inject(JogosService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly notificationDurationMs = 10_000;
@@ -39,17 +40,18 @@ export class GamesListComponent {
   protected readonly hasGames = computed(() => this.games().length > 0);
   protected readonly goalNotifications = signal<ReadonlyArray<GoalNotification>>([]);
 
-  protected readonly statusOptions: ReadonlyArray<{ value: ''; label: string } | { value: GameStatus; label: string }> = [
+  protected readonly statusOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: '', label: 'Todos os estados' },
-    { value: 'SCHEDULED', label: GAME_STATUS_LABEL.SCHEDULED },
-    { value: 'LIVE', label: GAME_STATUS_LABEL.LIVE },
-    { value: 'FINISHED', label: GAME_STATUS_LABEL.FINISHED }
+    { value: '1', label: 'Agendado' },
+    { value: '2', label: 'Em Curso' },
+    { value: '3', label: 'Finalizado' },
+    { value: '4', label: 'Cancelado' },
+    { value: '5', label: 'Adiado' }
   ];
 
   protected readonly filterForm = this.formBuilder.nonNullable.group({
     date: '',
-    competition: '',
-    status: this.formBuilder.nonNullable.control<GameStatus | ''>('')
+    estado: ''
   });
 
   constructor() {
@@ -57,6 +59,7 @@ export class GamesListComponent {
       this.clearGoalNotificationTimers();
     });
 
+    // Atualizar a cada 10 segundos
     timer(0, 10_000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -71,46 +74,88 @@ export class GamesListComponent {
   protected clearFilters(): void {
     this.filterForm.reset({
       date: '',
-      competition: '',
-      status: ''
+      estado: ''
     });
 
     this.fetchGames({});
   }
 
-  protected statusLabel(status: GameStatus): string {
-    return GAME_STATUS_LABEL[status];
+  protected statusLabel(estado: number | string): string {
+    const numEstado = typeof estado === 'string' ? parseInt(estado, 10) : estado;
+    return (GAME_STATE_LABEL as any)[numEstado] || 'Desconhecido';
   }
 
-  private fetchGames(filters: GameFilters): void {
+  private fetchGames(filters: { date?: string; estado?: string }): void {
     this.errorMessage.set('');
     this.isLoading.set(true);
 
-    this.backendApiService
-      .getGames(filters)
+    const filtros: any = {};
+
+    if (filters.date) {
+      filtros.dataInicio = filters.date;
+      filtros.dataFim = filters.date;
+    }
+
+    if (filters.estado) {
+      filtros.estado = parseInt(filters.estado, 10);
+    }
+
+    this.jogosService
+      .listar(filtros)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (games) => {
+        next: (jogos) => {
+          const games = jogos.map((jogo) => this.mapJogoToGame(jogo));
           this.detectGoals(games);
           this.updatePreviousScores(games);
           this.games.set(games);
           this.isLoading.set(false);
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel carregar os jogos.');
+        error: (error: any) => {
+          this.errorMessage.set('Não foi possível carregar os jogos. ' + error.message);
           this.isLoading.set(false);
         }
       });
   }
 
-  private currentFilters(): GameFilters {
+  private currentFilters(): { date?: string; estado?: string } {
     const raw = this.filterForm.getRawValue();
 
     return {
-      date: raw.date || undefined,
-      competition: raw.competition.trim() || undefined,
-      status: raw.status || undefined
+      date: raw.date?.trim() || undefined,
+      estado: raw.estado?.trim() || undefined
     };
+  }
+
+  private mapJogoToGame(jogo: JogoListaItemResponse): Game {
+    return {
+      id: jogo.CodigoJogo,
+      code: jogo.CodigoJogo,
+      homeTeam: jogo.EquipaCasa,
+      awayTeam: jogo.EquipaFora,
+      competition: jogo.TipoCompeticao,
+      startTime: new Date(jogo.DataHoraInicio).toISOString(),
+      status: this.mapEstadoToGameStatus(jogo.Estado),
+      homeScore: jogo.GolosCasa,
+      awayScore: jogo.GolosVisitante,
+      estado: jogo.Estado
+    };
+  }
+
+  private mapEstadoToGameStatus(estado: number): 'SCHEDULED' | 'LIVE' | 'FINISHED' {
+    switch (estado) {
+      case 1:
+        return 'SCHEDULED';
+      case 2:
+        return 'LIVE';
+      case 3:
+        return 'FINISHED';
+      case 4:
+      case 5:
+        return 'SCHEDULED';
+      default:
+        return 'SCHEDULED';
+    }
   }
 
   private detectGoals(games: ReadonlyArray<Game>): void {

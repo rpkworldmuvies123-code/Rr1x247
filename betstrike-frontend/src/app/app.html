@@ -35,6 +35,14 @@
   @if (isAuthenticated()) {
 
     <div class="session">
+      <nav aria-label="Navegacao principal autenticada">
+        <a class="nav-link" [routerLink]="['/games']">Jogos</a>
+        <a class="nav-link" [routerLink]="['/bets']">Minhas apostas</a>
+        @if (isAdmin()) {
+          <a class="nav-link" [routerLink]="['/admin/games']">Admin jogos</a>
+        }
+      </nav>
+      <span class="user-name">{{ username() }}</span>
       <button type="button" class="logout-btn" (click)="logout()">Terminar sessão</button>
     </div>
   }

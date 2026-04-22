@@ -34,6 +34,12 @@ export const routes: Routes = [
       import('./features/bets/game-bet.component').then((m) => m.GameBetComponent)
   },
   {
+    path: 'bets',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/bets/my-bets.component').then((m) => m.MyBetsComponent)
+  },
+  {
     path: 'admin/games',
     canActivate: [adminGuard],
     loadComponent: () =>

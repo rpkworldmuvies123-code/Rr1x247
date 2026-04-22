@@ -4,17 +4,17 @@
     <p class="subtitle">Cria uma conta para comecares.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="isSubmitting()">
-      <label for="username">Utilizador</label>
+      <label for="nomeCompleto">Nome completo</label>
       <input
-        id="username"
+        id="nomeCompleto"
         type="text"
-        formControlName="username"
-        autocomplete="username"
-        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
-        aria-describedby="username-error"
+        formControlName="nomeCompleto"
+        autocomplete="name"
+        [attr.aria-invalid]="form.controls.nomeCompleto.invalid && form.controls.nomeCompleto.touched"
+        aria-describedby="nomeCompleto-error"
       />
-      @if (form.controls.username.invalid && form.controls.username.touched) {
-        <p id="username-error" class="error" role="alert">Introduz um nome de utilizador valido (minimo 2 caracteres).</p>
+      @if (form.controls.nomeCompleto.invalid && form.controls.nomeCompleto.touched) {
+        <p id="nomeCompleto-error" class="error" role="alert">Introduz o teu nome completo (minimo 2 caracteres).</p>
       }
 
       <label for="email">Email</label>
@@ -40,7 +40,7 @@
         aria-describedby="password-error"
       />
       @if (form.controls.password.invalid && form.controls.password.touched) {
-        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 4 caracteres.</p>
+        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 6 caracteres.</p>
       }
 
       <label for="passwordConfirm">Confirma palavra-passe</label>

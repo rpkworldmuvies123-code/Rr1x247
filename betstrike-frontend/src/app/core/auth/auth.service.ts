@@ -1,53 +1,142 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { Observable, delay, of, throwError } from 'rxjs';
-
-export type UserRole = 'user' | 'admin';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, catchError, map, switchMap, tap, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
-  role: UserRole;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  nomeCompleto: string;
 }
 
 export interface AuthSession {
-  username: string;
-  role: UserRole;
   token: string;
+  utilizadorId: string;
+  email: string;
+  nomeCompleto: string;
+  roles: ReadonlyArray<string>;
+}
+
+interface AuthResponse {
+  token: string;
+  utilizadorId: string;
+  email: string;
+  nomeCompleto: string;
+}
+
+interface AuthMeResponse {
+  utilizadorId: string;
+  email: string;
+  nomeCompleto: string;
+  roles: ReadonlyArray<string>;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly httpClient = inject(HttpClient);
+  private readonly apiBaseUrl = environment.apiApostasBaseUrl;
   private readonly storageKey = 'betstrike.session';
   private readonly session = signal<AuthSession | null>(this.readStoredSession());
 
   readonly isAuthenticated = computed(() => this.session() !== null);
-  readonly isAdmin = computed(() => this.session()?.role === 'admin');
+  readonly isAdmin = computed(() => this.session()?.roles.some((role) => role.toLowerCase() === 'admin') ?? false);
   readonly currentSession = computed(() => this.session());
 
   login(request: LoginRequest): Observable<AuthSession> {
-    const username = request.username.trim();
+    const email = request.email.trim();
 
-    if (!username || !request.password.trim()) {
+    if (!email || !request.password.trim()) {
       return throwError(() => new Error('Credenciais invalidas.'));
     }
 
-    const nextSession: AuthSession = {
-      username,
-      role: request.role,
-      token: `mock-token-${request.role}-${Date.now()}`
-    };
+    return this.httpClient
+      .post<AuthResponse>(`${this.apiBaseUrl}/auth/login`, {
+        email,
+        password: request.password
+      })
+      .pipe(switchMap((response) => this.resolveSession(response.token)));
+  }
 
-    this.session.set(nextSession);
-    localStorage.setItem(this.storageKey, JSON.stringify(nextSession));
+  register(request: RegisterRequest): Observable<AuthSession> {
+    const email = request.email.trim();
+    const nomeCompleto = request.nomeCompleto.trim();
 
-    return of(nextSession).pipe(delay(250));
+    if (!email || !nomeCompleto || !request.password.trim()) {
+      return throwError(() => new Error('Dados de registo invalidos.'));
+    }
+
+    return this.httpClient
+      .post<AuthResponse>(`${this.apiBaseUrl}/auth/registar`, {
+        email,
+        password: request.password,
+        nomeCompleto
+      })
+      .pipe(switchMap((response) => this.resolveSession(response.token)));
+  }
+
+  refreshSession(): Observable<AuthSession> {
+    const session = this.session();
+
+    if (!session?.token) {
+      return throwError(() => new Error('Nao existe sessao ativa.'));
+    }
+
+    return this.httpClient.get<AuthMeResponse>(`${this.apiBaseUrl}/auth/me`).pipe(
+      map((me) => ({
+        token: session.token,
+        utilizadorId: me.utilizadorId,
+        email: me.email,
+        nomeCompleto: me.nomeCompleto,
+        roles: me.roles
+      })),
+      tap((nextSession) => this.persistSession(nextSession)),
+      catchError((error) => {
+        this.logout();
+        return this.handleError(error);
+      })
+    );
   }
 
   logout(): void {
     this.session.set(null);
     localStorage.removeItem(this.storageKey);
+  }
+
+  private resolveSession(token: string): Observable<AuthSession> {
+    this.session.set({
+      token,
+      utilizadorId: '',
+      email: '',
+      nomeCompleto: '',
+      roles: []
+    });
+
+    return this.httpClient.get<AuthMeResponse>(`${this.apiBaseUrl}/auth/me`).pipe(
+      map((me) => ({
+        token,
+        utilizadorId: me.utilizadorId,
+        email: me.email,
+        nomeCompleto: me.nomeCompleto,
+        roles: me.roles
+      })),
+      tap((session) => this.persistSession(session)),
+      catchError((error) => {
+        this.logout();
+        return this.handleError(error);
+      })
+    );
+  }
+
+  private persistSession(session: AuthSession): void {
+    this.session.set(session);
+    localStorage.setItem(this.storageKey, JSON.stringify(session));
   }
 
   private readStoredSession(): AuthSession | null {
@@ -63,6 +152,11 @@ export class AuthService {
       localStorage.removeItem(this.storageKey);
       return null;
     }
+  }
+
+  private handleError(error: any): Observable<never> {
+    const message = error?.error?.message || 'Erro ao comunicar com a ApiApostas.';
+    return throwError(() => new Error(message));
   }
 }
 

@@ -26,6 +26,26 @@
           <p><strong>Estadio:</strong> {{ gameData.venue }}</p>
         }
 
+        <h2>Resultado oficial</h2>
+        @if (resultado(); as resultadoData) {
+          <p>{{ resultadoData.EquipaCasa }} {{ resultadoData.GolosCasa }} - {{ resultadoData.GolosVisitante }} {{ resultadoData.EquipaFora }}</p>
+        } @else {
+          <p>Sem resultado oficial registado.</p>
+        }
+
+        <h2>Estatisticas de apostas</h2>
+        @if (estatisticas(); as stats) {
+          <ul>
+            <li>Total apostado: {{ stats.TotalApostado }}</li>
+            <li>Total de apostas: {{ stats.TotalApostas }}</li>
+            <li>Apostas pendentes: {{ stats.ApostasPendentes }}</li>
+            <li>Apostas ganhas: {{ stats.ApostasGanhas }}</li>
+            <li>Apostas perdidas: {{ stats.ApostasPerdidas }}</li>
+          </ul>
+        } @else {
+          <p>Sem estatisticas disponiveis para este jogo.</p>
+        }
+
         <h2>Eventos</h2>
         @if (gameData.events.length > 0) {
           <ul>

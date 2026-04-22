@@ -20,13 +20,8 @@
       </div>
 
       <div>
-        <label for="competition">Competicao</label>
-        <input id="competition" type="text" formControlName="competition" placeholder="Liga Portugal" />
-      </div>
-
-      <div>
-        <label for="status">Estado</label>
-        <select id="status" formControlName="status">
+        <label for="estado">Estado</label>
+        <select id="estado" formControlName="estado">
           @for (option of statusOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
@@ -51,36 +46,36 @@
       <div class="table-wrap">
         <table>
           <caption class="sr-only">Lista de jogos da jornada</caption>
-          <thead>
-            <tr>
-              <th scope="col">Codigo</th>
-              <th scope="col">Jogo</th>
-              <th scope="col">Competicao</th>
-              <th scope="col">Data</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Marcador</th>
-              <th scope="col">Detalhes</th>
-              <th scope="col">Apostar</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (game of games(); track game.id) {
-              <tr>
-                <td>{{ game.code }}</td>
-                <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
-                <td>{{ game.competition }}</td>
-                <td>{{ game.startTime | date: 'short' }}</td>
-                <td>{{ statusLabel(game.status) }}</td>
-                <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
-                <td>
-                  <a [routerLink]="['/games', game.id]">Ver</a>
-                </td>
-                <td>
-                  <a [routerLink]="['/games', game.id, 'bet']">Apostar</a>
-                </td>
-              </tr>
-            }
-          </tbody>
+           <thead>
+             <tr>
+               <th scope="col">Codigo</th>
+               <th scope="col">Jogo</th>
+               <th scope="col">Competicao</th>
+               <th scope="col">Data</th>
+               <th scope="col">Estado</th>
+               <th scope="col">Marcador</th>
+               <th scope="col">Detalhes</th>
+               <th scope="col">Apostar</th>
+             </tr>
+           </thead>
+           <tbody>
+             @for (game of games(); track game.id) {
+               <tr>
+                 <td>{{ game.code }}</td>
+                 <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
+                 <td>{{ game.competition }}</td>
+                 <td>{{ game.startTime | date: 'short' }}</td>
+                 <td>{{ statusLabel(game.estado ?? 1) }}</td>
+                 <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
+                 <td>
+                   <a [routerLink]="['/games', game.id]">Ver</a>
+                 </td>
+                 <td>
+                   <a [routerLink]="['/games', game.id, 'bet']">Apostar</a>
+                 </td>
+               </tr>
+             }
+           </tbody>
         </table>
       </div>
     }

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
+import { ApostasApiService } from '../../core/api/apostas-api.service';
 import { BackendApiService } from '../../core/api/backend-api.service';
 import {
   BET_MARKET_LABEL,
@@ -25,6 +26,7 @@ import {
 export class GameBetComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly backendApiService = inject(BackendApiService);
+  private readonly apostasApiService = inject(ApostasApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -33,18 +35,33 @@ export class GameBetComponent {
   protected readonly isDefaultGame = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly confirmationMessage = signal('');
+  protected readonly isSubmittingBet = signal(false);
+  protected readonly isDepositing = signal(false);
+  protected readonly walletBalance = signal<number | null>(null);
   protected readonly game = signal<BettingGame>(DEFAULT_BETTING_GAME);
   protected readonly betOptions: ReadonlyArray<BetMarket> = ['1', 'X', '2'];
   protected readonly betMarketLabels = BET_MARKET_LABEL;
   protected readonly gameStateLabels = GAME_STATE_LABEL;
   protected readonly stateLabel = computed(() => this.gameStateLabels[this.game().estadoDoJogo]);
+  protected readonly canBet = computed(() => {
+    const state = this.game().estadoDoJogo;
+    return state === 1 || state === 2;
+  });
   protected readonly sourceLabel = computed(() => (this.isDefaultGame() ? 'Jogo predefinido' : 'Jogo carregado da API'));
 
   protected readonly betForm = this.formBuilder.nonNullable.group({
-    outcome: this.formBuilder.nonNullable.control<BetMarket>('1', [Validators.required])
+    outcome: this.formBuilder.nonNullable.control<BetMarket>('1', [Validators.required]),
+    amount: this.formBuilder.nonNullable.control(5, [Validators.required, Validators.min(0.01)]),
+    odd: this.formBuilder.nonNullable.control(1.5, [Validators.required, Validators.min(1.01)])
+  });
+
+  protected readonly depositForm = this.formBuilder.nonNullable.group({
+    value: this.formBuilder.nonNullable.control(25, [Validators.required, Validators.min(0.01)])
   });
 
   constructor() {
+    this.loadBalance();
+
     this.route.paramMap
       .pipe(
         switchMap((params) => {
@@ -82,17 +99,90 @@ export class GameBetComponent {
   }
 
   protected placeBet(): void {
-    if (this.betForm.invalid) {
+    if (this.betForm.invalid || this.isSubmittingBet()) {
       this.betForm.markAllAsTouched();
       return;
     }
 
-    const { outcome } = this.betForm.getRawValue();
+    if (!this.canBet()) {
+      this.errorMessage.set('Este jogo nao aceita novas apostas no estado atual.');
+      return;
+    }
+
+    const gameId = this.gameId();
+    if (!gameId || gameId === 'default') {
+      this.errorMessage.set('Codigo do jogo invalido para apostar.');
+      return;
+    }
+
+    const { outcome, amount, odd } = this.betForm.getRawValue();
     const selectedGame = this.game();
 
-    this.confirmationMessage.set(
-      `Aposta registada em demonstracao: ${outcome} - ${this.betMarketLabels[outcome]} em ${selectedGame.equipaCasa} vs ${selectedGame.equipaFora}.`
-    );
+    this.isSubmittingBet.set(true);
+    this.errorMessage.set('');
+    this.confirmationMessage.set('');
+
+    this.apostasApiService
+      .criarAposta({
+        codigoJogo: gameId,
+        tipoAposta: outcome,
+        montanteApostado: amount,
+        oddMomento: odd
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.confirmationMessage.set(
+            `Aposta #${response.id} registada: ${outcome} - ${this.betMarketLabels[outcome]} em ${selectedGame.equipaCasa} vs ${selectedGame.equipaFora}.`
+          );
+          this.loadBalance();
+          this.isSubmittingBet.set(false);
+        },
+        error: (error: Error) => {
+          this.errorMessage.set(error.message || 'Nao foi possivel registar a aposta.');
+          this.isSubmittingBet.set(false);
+        }
+      });
+  }
+
+  protected depositBalance(): void {
+    if (this.depositForm.invalid || this.isDepositing()) {
+      this.depositForm.markAllAsTouched();
+      return;
+    }
+
+    const { value } = this.depositForm.getRawValue();
+    this.isDepositing.set(true);
+    this.errorMessage.set('');
+
+    this.apostasApiService
+      .depositarSaldo(value)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saldo) => {
+          this.walletBalance.set(saldo.SaldoAtual);
+          this.confirmationMessage.set(`Deposito efetuado com sucesso. Saldo atual: ${saldo.SaldoAtual.toFixed(2)} EUR.`);
+          this.isDepositing.set(false);
+        },
+        error: (error: Error) => {
+          this.errorMessage.set(error.message || 'Nao foi possivel efetuar o deposito.');
+          this.isDepositing.set(false);
+        }
+      });
+  }
+
+  private loadBalance(): void {
+    this.apostasApiService
+      .consultarSaldo()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saldo) => {
+          this.walletBalance.set(saldo.SaldoAtual);
+        },
+        error: () => {
+          this.walletBalance.set(null);
+        }
+      });
   }
 
   private toBettingGame(game: GameDetails): BettingGame {

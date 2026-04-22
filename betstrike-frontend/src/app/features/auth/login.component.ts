@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthService, UserRole } from '../../core/auth/auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -20,9 +20,8 @@ export class LoginComponent {
   protected readonly errorMessage = signal('');
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    username: ['', [Validators.required, Validators.minLength(2)]],
-    password: ['', [Validators.required, Validators.minLength(4)]],
-    role: this.formBuilder.nonNullable.control<UserRole>('user', [Validators.required])
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]]
   });
 
   protected submit(): void {
@@ -39,7 +38,7 @@ export class LoginComponent {
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: (session) => {
-          const destination = session.role === 'admin' ? ['/admin/games'] : ['/games'];
+          const destination = session.roles.some((role) => role.toLowerCase() === 'admin') ? ['/admin/games'] : ['/games'];
           void this.router.navigate(destination);
         },
         error: () => {

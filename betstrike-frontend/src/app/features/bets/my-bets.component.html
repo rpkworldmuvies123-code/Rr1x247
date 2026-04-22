@@ -1,0 +1,74 @@
+<main class="page" aria-labelledby="my-bets-title">
+  <section class="panel">
+    <div class="header-row">
+      <h1 id="my-bets-title">Minhas apostas</h1>
+      <button type="button" (click)="refresh()" [disabled]="isLoading()">Atualizar</button>
+    </div>
+
+    <p><a [routerLink]="['/games']">&larr; Ver jogos</a></p>
+
+    @if (isLoading()) {
+      <p role="status" aria-live="polite">A carregar apostas...</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (feedbackMessage()) {
+      <p class="success" role="status">{{ feedbackMessage() }}</p>
+    }
+
+    @if (!isLoading() && hasBets()) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Jogo</th>
+              <th>Mercado</th>
+              <th>Montante</th>
+              <th>Odd</th>
+              <th>Premio</th>
+              <th>Estado</th>
+              <th>Registo</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bet of bets(); track bet.id) {
+              <tr>
+                <td>#{{ bet.id }}</td>
+                <td>
+                  <a [routerLink]="['/games', bet.codigoJogo]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
+                </td>
+                <td>{{ bet.tipoAposta }}</td>
+                <td>{{ bet.montanteApostado }}</td>
+                <td>{{ bet.oddMomento }}</td>
+                <td>{{ bet.premioPotencial }}</td>
+                <td>{{ estadoLabel(bet.estado) }}</td>
+                <td>{{ bet.dataHoraRegisto | date: 'short' }}</td>
+                <td>
+                  <button
+                    type="button"
+                    (click)="cancelBet(bet)"
+                    [disabled]="!canCancel(bet) || cancelingBetId() === bet.id"
+                  >
+                    @if (cancelingBetId() === bet.id) {
+                      A cancelar...
+                    } @else {
+                      Cancelar
+                    }
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (!isLoading()) {
+      <p>Sem apostas registadas.</p>
+    }
+  </section>
+</main>
+
