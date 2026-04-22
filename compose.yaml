@@ -130,7 +130,6 @@
         condition: service_healthy
 
   frontend:
-    profiles: ["legacy-frontend"]
     image: betstrike-frontend
     build:
       context: ./betstrike-frontend
@@ -140,7 +139,7 @@
     networks:
       - env_net
     depends_on:
-      apiresultados:
+      apiapostas:
         condition: service_healthy
 
 networks:
