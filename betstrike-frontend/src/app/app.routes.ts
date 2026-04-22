@@ -46,6 +46,12 @@ export const routes: Routes = [
       import('./features/admin/admin-games.component').then((m) => m.AdminGamesComponent)
   },
   {
+    path: 'admin/users',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-users.component').then((m) => m.AdminUsersComponent)
+  },
+  {
     path: '**',
     redirectTo: 'login'
   }

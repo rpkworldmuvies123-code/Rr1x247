@@ -7,7 +7,6 @@ export interface CriarApostaRequest {
   codigoJogo: string;
   tipoAposta: '1' | 'X' | '2';
   montanteApostado: number;
-  oddMomento: number;
 }
 
 export interface CriarApostaResponse {
@@ -46,6 +45,27 @@ export interface ResultadoResponse {
   DataHoraAtualizacao: string;
 }
 
+export interface UtilizadorAdminResponse {
+  Id: string;
+  NomeCompleto: string;
+  Email: string;
+  DataRegisto: string;
+  SaldoAtual: number | null;
+  SaldoAtualizadoEm: string | null;
+  IsAdmin: boolean;
+}
+
+export interface LogAdminEntry {
+  Id: number;
+  AdminId: string;
+  AdminEmail: string;
+  UtilizadorId: string | null;
+  UtilizadorEmail: string | null;
+  Acao: string;
+  Detalhe: string | null;
+  DataHora: string;
+}
+
 export interface EstatisticasJogoResponse {
   CodigoJogo: string;
   TotalApostado: number;
@@ -71,8 +91,7 @@ export class ApostasApiService {
     return this.httpClient.post<CriarApostaResponse>(`${this.apiBaseUrl}/apostas`, {
       codigoJogo: request.codigoJogo,
       tipoAposta: request.tipoAposta,
-      montanteApostado: request.montanteApostado,
-      oddMomento: request.oddMomento
+      montanteApostado: request.montanteApostado
     });
   }
 
@@ -121,6 +140,39 @@ export class ApostasApiService {
 
   consultarEstatisticasJogo(codigoJogo: string): Observable<EstatisticasJogoResponse> {
     return this.httpClient.get<EstatisticasJogoResponse>(`${this.apiBaseUrl}/estatisticas/jogos/${codigoJogo}`);
+  }
+
+  // Admin
+  consultarUtilizadoresAdmin(): Observable<ReadonlyArray<UtilizadorAdminResponse>> {
+    return this.httpClient.get<ReadonlyArray<UtilizadorAdminResponse>>(`${this.apiBaseUrl}/admin/utilizadores`);
+  }
+
+  ajustarSaldoAdmin(utilizadorId: string, valor: number, motivo: string): Observable<SaldoResponse> {
+    return this.httpClient.post<SaldoResponse>(
+      `${this.apiBaseUrl}/admin/utilizadores/${encodeURIComponent(utilizadorId)}/saldo`,
+      { valor, motivo }
+    );
+  }
+
+  consultarTransacoes(params?: { tipo?: string; apostaId?: number; dataInicio?: string; dataFim?: string; pagina?: number }): Observable<ReadonlyArray<{
+    Id: number; ApostaId: number | null; UtilizadorId: string;
+    TipoTransacao: string; Valor: number; DataHora: string; Estado: string;
+  }>> {
+    let httpParams = new HttpParams();
+    if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
+    if (params?.apostaId) httpParams = httpParams.set('apostaId', params.apostaId.toString());
+    if (params?.dataInicio) httpParams = httpParams.set('dataInicio', params.dataInicio);
+    if (params?.dataFim) httpParams = httpParams.set('dataFim', params.dataFim);
+    if (params?.pagina) httpParams = httpParams.set('pagina', params.pagina.toString());
+    return this.httpClient.get<any[]>(`${this.apiBaseUrl}/pagamentos/transacoes`, { params: httpParams });
+  }
+
+  consultarLogAdmin(params?: { adminId?: string; utilizadorId?: string; pagina?: number }): Observable<ReadonlyArray<LogAdminEntry>> {
+    let httpParams = new HttpParams();
+    if (params?.adminId) httpParams = httpParams.set('adminId', params.adminId);
+    if (params?.utilizadorId) httpParams = httpParams.set('utilizadorId', params.utilizadorId);
+    if (params?.pagina) httpParams = httpParams.set('pagina', params.pagina.toString());
+    return this.httpClient.get<ReadonlyArray<LogAdminEntry>>(`${this.apiBaseUrl}/admin/log`, { params: httpParams });
   }
 }
 

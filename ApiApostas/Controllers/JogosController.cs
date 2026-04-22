@@ -6,7 +6,7 @@ namespace ApiApostas.Controllers;
 
 [ApiController]
 [Route("api/jogos")]
-public class JogosController(DatabaseService db) : ControllerBase
+public class JogosController(DatabaseService db, PagamentosClient pagamentos, ILogger<JogosController> logger) : ControllerBase
 {
     public record CriarJogoRequest(
         string CodigoJogo,
@@ -34,6 +34,13 @@ public class JogosController(DatabaseService db) : ControllerBase
         return Ok(jogo);
     }
 
+    [HttpGet("{codigoJogo}/odds")]
+    public async Task<IActionResult> ObterOdds(string codigoJogo)
+    {
+        var odds = await db.ConsultarOddsJogoAsync(codigoJogo);
+        return Ok(odds);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Criar([FromBody] CriarJogoRequest req)
@@ -49,6 +56,10 @@ public class JogosController(DatabaseService db) : ControllerBase
     public async Task<IActionResult> Atualizar(string codigoJogo, [FromBody] AtualizarJogoRequest req)
     {
         await db.AtualizarJogoAsync(codigoJogo, req.Estado, req.GolosCasa, req.GolosVisitante);
+
+        // Processar pagamentos pendentes resultantes da transição de estado
+        await ProcessarPagamentosPendentesAsync(codigoJogo);
+
         return NoContent();
     }
 
@@ -58,5 +69,55 @@ public class JogosController(DatabaseService db) : ControllerBase
     {
         await db.RemoverJogoAsync(codigoJogo);
         return NoContent();
+    }
+
+    // ── Chamado também pela SincronizacaoService ──────────────────
+
+    public async Task ProcessarPagamentosPendentesAsync(string codigoJogo)
+    {
+        List<System.Collections.Generic.Dictionary<string, object?>> pendentes;
+        try
+        {
+            pendentes = await db.ObterPagamentosPendentesAsync(codigoJogo);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Falha ao obter pagamentos pendentes para {CodigoJogo}", codigoJogo);
+            return;
+        }
+
+        foreach (var bet in pendentes)
+        {
+            var apostaId = Convert.ToInt32(bet["Id"]);
+            var utilizadorId = (string)bet["UtilizadorId"]!;
+            var estado = Convert.ToInt32(bet["Estado"]);
+            var montante = Convert.ToDecimal(bet["MontanteApostado"]);
+            var odd = Convert.ToDecimal(bet["OddMomento"]);
+
+            try
+            {
+                if (estado == 2) // Ganha — pagar prémio
+                {
+                    var premio = Math.Round(montante * odd, 2);
+                    await pagamentos.CreditarApostaAsync(utilizadorId, premio, "PG", apostaId);
+                }
+                else if (estado == 4) // Anulada — reembolsar montante
+                {
+                    await pagamentos.CreditarApostaAsync(utilizadorId, montante, "RE", apostaId);
+                }
+
+                await db.MarcarPagamentoProcessadoAsync(apostaId);
+                logger.LogInformation(
+                    "Pagamento processado: aposta {ApostaId} estado={Estado} utilizador={Uid}",
+                    apostaId, estado, utilizadorId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "Falha ao processar pagamento da aposta {ApostaId} — será reprocessado",
+                    apostaId);
+                // PagamentoPendente mantém-se 1; será reprocessado no próximo ciclo
+            }
+        }
     }
 }

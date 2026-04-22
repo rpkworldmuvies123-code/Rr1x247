@@ -17,7 +17,7 @@ echo "[db-init] Servidor: $SERVER"
 
 # Validar variáveis obrigatórias
 ERROS=0
-for VAR in MSSQL_SA_PASSWORD RESULTADOS_DB_PASSWORD APOSTAS_DB_PASSWORD; do
+for VAR in MSSQL_SA_PASSWORD RESULTADOS_DB_PASSWORD APOSTAS_DB_PASSWORD PAGAMENTOS_DB_PASSWORD; do
     VAL="${!VAR}"
     if [ -z "$VAL" ]; then
         echo "[db-init] ERRO: variavel $VAR nao esta definida no .env."
@@ -70,7 +70,7 @@ ELSE PRINT 'login [apostas] ja existe.';
 GO
 IF SUSER_ID(N'pagamentos') IS NULL
 BEGIN
-    CREATE LOGIN [pagamentos] WITH PASSWORD = N'${APOSTAS_DB_PASSWORD}';
+    CREATE LOGIN [pagamentos] WITH PASSWORD = N'${PAGAMENTOS_DB_PASSWORD}';
     PRINT 'login [pagamentos] criado.';
 END
 ELSE PRINT 'login [pagamentos] ja existe.';

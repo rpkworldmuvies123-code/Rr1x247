@@ -1,24 +1,16 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { of, switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 import { ApostasApiService } from '../../core/api/apostas-api.service';
 import { BackendApiService } from '../../core/api/backend-api.service';
-import {
-  BET_MARKET_LABEL,
-  DEFAULT_BETTING_GAME,
-  GAME_STATE_LABEL,
-  BettingGame,
-  BetMarket,
-  GameDetails,
-  GameStatus,
-  MatchState
-} from '../../core/models/game.model';
+import { BET_MARKET_LABEL, BetMarket, GameDetails, estadoClass, estadoLabel } from '../../core/models/game.model';
 
 @Component({
   selector: 'app-game-bet',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe],
   templateUrl: './game-bet.component.html',
   styleUrl: './game-bet.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -30,69 +22,76 @@ export class GameBetComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly gameId = signal('default');
+  protected readonly codigoJogo = signal<string | null>(null);
   protected readonly isLoading = signal(true);
-  protected readonly isDefaultGame = signal(true);
+  protected readonly isOddsLoading = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly confirmationMessage = signal('');
   protected readonly isSubmittingBet = signal(false);
-  protected readonly isDepositing = signal(false);
   protected readonly walletBalance = signal<number | null>(null);
-  protected readonly game = signal<BettingGame>(DEFAULT_BETTING_GAME);
+  protected readonly game = signal<GameDetails | null>(null);
+
   protected readonly betOptions: ReadonlyArray<BetMarket> = ['1', 'X', '2'];
   protected readonly betMarketLabels = BET_MARKET_LABEL;
-  protected readonly gameStateLabels = GAME_STATE_LABEL;
-  protected readonly stateLabel = computed(() => this.gameStateLabels[this.game().estadoDoJogo]);
+
+  protected readonly stateLabel = computed(() => estadoLabel(this.game()?.estado ?? 0));
+  protected readonly stateClass = computed(() => estadoClass(this.game()?.estado ?? 0));
   protected readonly canBet = computed(() => {
-    const state = this.game().estadoDoJogo;
-    return state === 1 || state === 2;
+    const estado = this.game()?.estado;
+    return estado === 1 || estado === 2;
   });
-  protected readonly sourceLabel = computed(() => (this.isDefaultGame() ? 'Jogo predefinido' : 'Jogo carregado da API'));
 
   protected readonly betForm = this.formBuilder.nonNullable.group({
     outcome: this.formBuilder.nonNullable.control<BetMarket>('1', [Validators.required]),
-    amount: this.formBuilder.nonNullable.control(5, [Validators.required, Validators.min(0.01)]),
-    odd: this.formBuilder.nonNullable.control(1.5, [Validators.required, Validators.min(1.01)])
+    amount: this.formBuilder.nonNullable.control(5, [Validators.required, Validators.min(0.01)])
   });
 
-  protected readonly depositForm = this.formBuilder.nonNullable.group({
-    value: this.formBuilder.nonNullable.control(25, [Validators.required, Validators.min(0.01)])
+  private readonly _formSnapshot = signal(this.betForm.getRawValue());
+  protected readonly prizePreview = computed(() => {
+    const snap = this._formSnapshot();
+    const odd = this.oddForOutcome(snap.outcome);
+    if (!odd || snap.amount <= 0) return null;
+    return odd * snap.amount;
   });
 
   constructor() {
     this.loadBalance();
 
+    this.betForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this._formSnapshot.set(this.betForm.getRawValue()));
+
     this.route.paramMap
       .pipe(
         switchMap((params) => {
-          const gameId = params.get('id');
-          this.gameId.set(gameId ?? 'default');
+          const id = params.get('id');
+          this.codigoJogo.set(id);
           this.isLoading.set(true);
           this.errorMessage.set('');
           this.confirmationMessage.set('');
-          this.isDefaultGame.set(true);
+          this.game.set(null);
 
-          if (!gameId) {
+          if (!id) {
             this.isLoading.set(false);
-            this.errorMessage.set('Nao foi possivel identificar o jogo selecionado. A mostrar o jogo default.');
+            this.errorMessage.set('Código do jogo não encontrado.');
             return of(null);
           }
 
-          return this.backendApiService.getGameById(gameId);
+          return this.backendApiService.getGameById(id);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (game) => {
-          if (game) {
-            this.game.set(this.toBettingGame(game));
-            this.isDefaultGame.set(false);
-          }
-
+        next: (result) => {
+          if (!result) return;
+          this.game.set(result);
           this.isLoading.set(false);
+          if (!result.odds) {
+            this.fetchOddsFallback(result.id);
+          }
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel carregar o jogo. A mostrar o jogo default.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar o jogo.');
           this.isLoading.set(false);
         }
       });
@@ -105,69 +104,63 @@ export class GameBetComponent {
     }
 
     if (!this.canBet()) {
-      this.errorMessage.set('Este jogo nao aceita novas apostas no estado atual.');
+      this.errorMessage.set('Este jogo não aceita novas apostas no estado atual.');
       return;
     }
 
-    const gameId = this.gameId();
-    if (!gameId || gameId === 'default') {
-      this.errorMessage.set('Codigo do jogo invalido para apostar.');
+    const codigoJogo = this.codigoJogo();
+    if (!codigoJogo) {
+      this.errorMessage.set('Código do jogo inválido.');
       return;
     }
 
-    const { outcome, amount, odd } = this.betForm.getRawValue();
-    const selectedGame = this.game();
+    const { outcome, amount } = this.betForm.getRawValue();
+    const game = this.game();
 
     this.isSubmittingBet.set(true);
     this.errorMessage.set('');
     this.confirmationMessage.set('');
 
     this.apostasApiService
-      .criarAposta({
-        codigoJogo: gameId,
-        tipoAposta: outcome,
-        montanteApostado: amount,
-        oddMomento: odd
-      })
+      .criarAposta({ codigoJogo, tipoAposta: outcome, montanteApostado: amount })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
+          const odd = this.oddForOutcome(outcome);
+          const prize = odd ? (amount * odd).toFixed(2) : '—';
           this.confirmationMessage.set(
-            `Aposta #${response.id} registada: ${outcome} - ${this.betMarketLabels[outcome]} em ${selectedGame.equipaCasa} vs ${selectedGame.equipaFora}.`
+            `Aposta #${response.id} registada — ${this.betMarketLabels[outcome]} (odd ${odd?.toFixed(2) ?? '—'}) · prémio potencial ${prize} EUR.`
           );
           this.loadBalance();
           this.isSubmittingBet.set(false);
         },
-        error: (error: Error) => {
-          this.errorMessage.set(error.message || 'Nao foi possivel registar a aposta.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível registar a aposta.');
           this.isSubmittingBet.set(false);
         }
       });
   }
 
-  protected depositBalance(): void {
-    if (this.depositForm.invalid || this.isDepositing()) {
-      this.depositForm.markAllAsTouched();
-      return;
+  protected oddForOutcome(outcome: BetMarket): number | null {
+    const o = this.game()?.odds;
+    if (!o) return null;
+    switch (outcome) {
+      case '1': return o.Odd1;
+      case 'X': return o.OddX;
+      case '2': return o.Odd2;
     }
+  }
 
-    const { value } = this.depositForm.getRawValue();
-    this.isDepositing.set(true);
-    this.errorMessage.set('');
-
-    this.apostasApiService
-      .depositarSaldo(value)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (saldo) => {
-          this.walletBalance.set(saldo.SaldoAtual);
-          this.confirmationMessage.set(`Deposito efetuado com sucesso. Saldo atual: ${saldo.SaldoAtual.toFixed(2)} EUR.`);
-          this.isDepositing.set(false);
-        },
-        error: (error: Error) => {
-          this.errorMessage.set(error.message || 'Nao foi possivel efetuar o deposito.');
-          this.isDepositing.set(false);
+  private fetchOddsFallback(codigoJogo: string): void {
+    this.isOddsLoading.set(true);
+    this.backendApiService
+      .getGameOdds(codigoJogo)
+      .pipe(takeUntilDestroyed(this.destroyRef), catchError(() => of(null)))
+      .subscribe((odds) => {
+        if (odds) {
+          this.game.update((g) => (g ? { ...g, odds } : g));
         }
+        this.isOddsLoading.set(false);
       });
   }
 
@@ -176,56 +169,8 @@ export class GameBetComponent {
       .consultarSaldo()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (saldo) => {
-          this.walletBalance.set(saldo.SaldoAtual);
-        },
-        error: () => {
-          this.walletBalance.set(null);
-        }
+        next: (saldo) => this.walletBalance.set(saldo.SaldoAtual),
+        error: () => this.walletBalance.set(null)
       });
   }
-
-  private toBettingGame(game: GameDetails): BettingGame {
-    const [datePart = '', timePart = ''] = game.startTime.split('T');
-
-    return {
-      dataDoJogo: this.formatDate(datePart),
-      horaDeInicio: this.formatTime(timePart),
-      equipaCasa: game.homeTeam,
-      equipaFora: game.awayTeam,
-      golosCasa: game.homeScore,
-      golosFora: game.awayScore,
-      estadoDoJogo: this.resolveMatchState(game.status)
-    };
-  }
-
-  private formatDate(datePart: string): string {
-    const [year, month, day] = datePart.split('-');
-
-    if (!year || !month || !day) {
-      return DEFAULT_BETTING_GAME.dataDoJogo;
-    }
-
-    return `${day}/${month}/${year}`;
-  }
-
-  private formatTime(timePart: string): string {
-    if (!timePart) {
-      return DEFAULT_BETTING_GAME.horaDeInicio;
-    }
-
-    return timePart.slice(0, 5) || DEFAULT_BETTING_GAME.horaDeInicio;
-  }
-
-  private resolveMatchState(status: GameStatus): MatchState {
-    switch (status) {
-      case 'LIVE':
-        return 2;
-      case 'FINISHED':
-        return 3;
-      default:
-        return 1;
-    }
-  }
 }
-

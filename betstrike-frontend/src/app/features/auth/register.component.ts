@@ -41,8 +41,8 @@ export class RegisterComponent {
     {
       nomeCompleto: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      passwordConfirm: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required]],
+      passwordConfirm: ['', [Validators.required]]
     },
     { validators: passwordMatchValidator }
   );
@@ -66,8 +66,8 @@ export class RegisterComponent {
           const destination = session.roles.some((role) => role.toLowerCase() === 'admin') ? ['/admin/games'] : ['/games'];
           void this.router.navigate(destination);
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel registar. Tente novamente.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Nao foi possivel registar. Tente novamente.');
         }
       });
   }

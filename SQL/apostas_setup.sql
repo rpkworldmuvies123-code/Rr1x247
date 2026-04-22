@@ -33,15 +33,32 @@ BEGIN TRY
             Estado          SMALLINT      NOT NULL CONSTRAINT df_jogos_estado DEFAULT (1),
             GolosCasa       INT           NOT NULL CONSTRAINT df_jogos_gc     DEFAULT (0),
             GolosVisitante  INT           NOT NULL CONSTRAINT df_jogos_gv     DEFAULT (0),
+            Odd1            DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_odd1   DEFAULT (2.10),
+            OddX            DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_oddx   DEFAULT (3.50),
+            Odd2            DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_odd2   DEFAULT (3.20),
             CONSTRAINT UQ_Jogos_CodigoJogo   UNIQUE  (CodigoJogo),
             CONSTRAINT CK_Jogos_CodigoFormato CHECK  (CodigoJogo LIKE 'FUT-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
             CONSTRAINT CK_Jogos_Estado        CHECK  (Estado BETWEEN 1 AND 5),
             CONSTRAINT CK_Jogos_GolosCasa     CHECK  (GolosCasa >= 0),
-            CONSTRAINT CK_Jogos_GolosVisitante CHECK (GolosVisitante >= 0)
+            CONSTRAINT CK_Jogos_GolosVisitante CHECK (GolosVisitante >= 0),
+            CONSTRAINT CK_Jogos_Odd1          CHECK  (Odd1 > 1.0),
+            CONSTRAINT CK_Jogos_OddX          CHECK  (OddX > 1.0),
+            CONSTRAINT CK_Jogos_Odd2          CHECK  (Odd2 > 1.0)
         );
         PRINT 'tabela Jogos criada.';
     END
-    ELSE PRINT 'tabela Jogos ja existe.';
+    ELSE
+    BEGIN
+        PRINT 'tabela Jogos ja existe.';
+        IF COL_LENGTH('dbo.Jogos', 'Odd1') IS NULL
+        BEGIN
+            ALTER TABLE dbo.Jogos ADD
+                Odd1 DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_odd1 DEFAULT (2.10),
+                OddX DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_oddx DEFAULT (3.50),
+                Odd2 DECIMAL(10,4) NOT NULL CONSTRAINT df_jogos_odd2 DEFAULT (3.20);
+            PRINT 'colunas Odd1/OddX/Odd2 adicionadas a tabela Jogos.';
+        END
+    END
 
     IF OBJECT_ID(N'dbo.Resultados', N'U') IS NULL
     BEGIN
@@ -63,14 +80,15 @@ BEGIN TRY
     IF OBJECT_ID(N'dbo.Apostas', N'U') IS NULL
     BEGIN
         CREATE TABLE dbo.Apostas (
-            Id                INT IDENTITY(1,1) PRIMARY KEY,
-            JogoId            INT           NOT NULL,
-            UtilizadorId      NVARCHAR(450) NOT NULL,
-            TipoAposta        CHAR(1)       NOT NULL,
-            MontanteApostado  DECIMAL(10,2) NOT NULL,
-            OddMomento        DECIMAL(10,4) NOT NULL,
-            Estado            SMALLINT      NOT NULL CONSTRAINT df_apostas_estado DEFAULT (1),
-            DataHoraRegisto   DATETIME2     NOT NULL CONSTRAINT df_apostas_data   DEFAULT (GETUTCDATE()),
+            Id                  INT IDENTITY(1,1) PRIMARY KEY,
+            JogoId              INT           NOT NULL,
+            UtilizadorId        NVARCHAR(450) NOT NULL,
+            TipoAposta          CHAR(1)       NOT NULL,
+            MontanteApostado    DECIMAL(10,2) NOT NULL,
+            OddMomento          DECIMAL(10,4) NOT NULL,
+            Estado              SMALLINT      NOT NULL CONSTRAINT df_apostas_estado  DEFAULT (1),
+            DataHoraRegisto     DATETIME2     NOT NULL CONSTRAINT df_apostas_data    DEFAULT (GETUTCDATE()),
+            PagamentoPendente   BIT           NOT NULL CONSTRAINT df_apostas_pgpend  DEFAULT (0),
             CONSTRAINT FK_Apostas_Jogos       FOREIGN KEY (JogoId) REFERENCES dbo.Jogos(Id),
             CONSTRAINT CK_Apostas_TipoAposta  CHECK (TipoAposta IN ('1','X','2')),
             CONSTRAINT CK_Apostas_Estado      CHECK (Estado BETWEEN 1 AND 4),
@@ -79,7 +97,16 @@ BEGIN TRY
         );
         PRINT 'tabela Apostas criada.';
     END
-    ELSE PRINT 'tabela Apostas ja existe.';
+    ELSE
+    BEGIN
+        PRINT 'tabela Apostas ja existe.';
+        IF COL_LENGTH('dbo.Apostas', 'PagamentoPendente') IS NULL
+        BEGIN
+            ALTER TABLE dbo.Apostas ADD
+                PagamentoPendente BIT NOT NULL CONSTRAINT df_apostas_pgpend DEFAULT (0);
+            PRINT 'coluna PagamentoPendente adicionada a tabela Apostas.';
+        END
+    END
 
     COMMIT TRAN;
     PRINT 'tabelas validadas.';
@@ -311,10 +338,11 @@ BEGIN
         EXEC dbo.sp_ResolverApostasJogo @JogoId;
     END
 
-    -- Transitioning to Cancelado (4) or Adiado (5): annul all pending bets
+    -- Transitioning to Cancelado (4) or Adiado (5): annul all pending bets + marcar para reembolso
     IF @Estado IN (4, 5)
     BEGIN
-        UPDATE dbo.Apostas SET Estado = 4
+        UPDATE dbo.Apostas
+        SET Estado = 4, PagamentoPendente = 1
         WHERE JogoId = @JogoId AND Estado = 1;
     END
 
@@ -376,8 +404,9 @@ BEGIN
     SELECT
         j.Id, j.CodigoJogo, j.DataHoraInicio, j.EquipaCasa, j.EquipaFora,
         j.TipoCompeticao, j.Estado, j.GolosCasa, j.GolosVisitante,
-        ISNULL((SELECT COUNT(*) FROM dbo.Apostas WHERE JogoId = j.Id AND Estado = 1), 0) AS ApostasPendentes,
-        ISNULL((SELECT SUM(MontanteApostado) FROM dbo.Apostas WHERE JogoId = j.Id AND Estado = 1), 0) AS VolumeTotalApostado
+        j.Odd1, j.OddX, j.Odd2,
+        ISNULL((SELECT COUNT(*) FROM dbo.Apostas a WHERE a.JogoId = j.Id AND a.Estado = 1), 0) AS ApostasPendentes,
+        ISNULL((SELECT SUM(a2.MontanteApostado) FROM dbo.Apostas a2 WHERE a2.JogoId = j.Id AND a2.Estado = 1), 0) AS VolumeTotalApostado
     FROM dbo.Jogos j
     WHERE j.CodigoJogo = @CodigoJogo;
 END
@@ -400,62 +429,69 @@ BEGIN
 
     UPDATE dbo.Apostas
     SET Estado =
-        CASE
-            WHEN TipoAposta = '1' AND @GC  > @GV THEN 2
-            WHEN TipoAposta = 'X' AND @GC  = @GV THEN 2
-            WHEN TipoAposta = '2' AND @GV  > @GC THEN 2
-            ELSE 3
-        END
+            CASE
+                WHEN TipoAposta = '1' AND @GC  > @GV THEN 2
+                WHEN TipoAposta = 'X' AND @GC  = @GV THEN 2
+                WHEN TipoAposta = '2' AND @GV  > @GC THEN 2
+                ELSE 3
+            END,
+        -- ganhadoras precisam de pagamento; perdidas nao (debito ja ocorreu)
+        PagamentoPendente =
+            CASE
+                WHEN TipoAposta = '1' AND @GC  > @GV THEN 1
+                WHEN TipoAposta = 'X' AND @GC  = @GV THEN 1
+                WHEN TipoAposta = '2' AND @GV  > @GC THEN 1
+                ELSE 0
+            END
     WHERE JogoId = @JogoId AND Estado = 1;
 END
 GO
 
 -- ----------------------------------------------------------------
 -- sp_InserirAposta
+--   Valida e insere a aposta. Nao faz operacoes financeiras —
+--   o debito e feito pela ApiApostas via ApiPagamentos (HTTP).
 -- ----------------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.sp_InserirAposta
     @CodigoJogo       VARCHAR(20),
     @UtilizadorId     NVARCHAR(450),
     @TipoAposta       CHAR(1),
     @MontanteApostado DECIMAL(10,2),
-    @OddMomento       DECIMAL(10,4),
-    @ApostaId         INT OUTPUT
+    @ApostaId         INT          OUTPUT,
+    @OddMomento       DECIMAL(10,4) OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON; SET XACT_ABORT ON;
-    BEGIN TRANSACTION;
 
-    DECLARE @JogoId INT, @Estado SMALLINT;
-    SELECT @JogoId = Id, @Estado = Estado FROM dbo.Jogos WHERE CodigoJogo = @CodigoJogo;
+    DECLARE @JogoId INT, @Estado SMALLINT, @Odd1 DECIMAL(10,4), @OddX DECIMAL(10,4), @Odd2 DECIMAL(10,4);
+    SELECT @JogoId = Id, @Estado = Estado, @Odd1 = Odd1, @OddX = OddX, @Odd2 = Odd2
+    FROM dbo.Jogos WHERE CodigoJogo = @CodigoJogo;
 
-    IF @JogoId IS NULL     THROW 50007, 'Jogo nao encontrado.', 1;
-    IF @Estado NOT IN (1,2) THROW 50008, 'Nao e permitido registar apostas em jogos com este estado.', 1;
+    IF @JogoId IS NULL           THROW 50007, 'Jogo nao encontrado.', 1;
+    IF @Estado NOT IN (1,2)      THROW 50008, 'Nao e permitido registar apostas em jogos com este estado.', 1;
     IF @TipoAposta NOT IN ('1','X','2') THROW 50009, 'O tipo de aposta deve ser 1, X ou 2.', 1;
-    IF @MontanteApostado <= 0           THROW 50010, 'O montante apostado deve ser positivo.', 1;
-    IF @OddMomento <= 1.0               THROW 50011, 'A odd deve ser superior a 1.0.', 1;
+    IF @MontanteApostado <= 0    THROW 50010, 'O montante apostado deve ser positivo.', 1;
 
-    DECLARE @SaldoAtual DECIMAL(10,2);
-    SELECT @SaldoAtual = SaldoAtual
-    FROM [betstrike-pagamentos].dbo.Saldo_Utilizador
-    WHERE UtilizadorId = @UtilizadorId;
+    SET @OddMomento = CASE @TipoAposta WHEN '1' THEN @Odd1 WHEN 'X' THEN @OddX ELSE @Odd2 END;
 
-    IF @SaldoAtual IS NULL        THROW 50012, 'Registo de saldo nao encontrado para o utilizador.', 1;
-    IF @SaldoAtual < @MontanteApostado THROW 50013, 'Saldo insuficiente para realizar esta aposta.', 1;
+    IF @OddMomento IS NULL OR @OddMomento <= 1.0
+        THROW 50011, 'A odd configurada para este mercado e invalida.', 1;
 
     INSERT INTO dbo.Apostas (JogoId, UtilizadorId, TipoAposta, MontanteApostado, OddMomento, Estado, DataHoraRegisto)
     VALUES (@JogoId, @UtilizadorId, @TipoAposta, @MontanteApostado, @OddMomento, 1, GETUTCDATE());
     SET @ApostaId = SCOPE_IDENTITY();
+END
+GO
 
-    UPDATE [betstrike-pagamentos].dbo.Saldo_Utilizador
-    SET SaldoAtual = SaldoAtual - @MontanteApostado,
-        DataHoraAtualizacao = GETUTCDATE()
-    WHERE UtilizadorId = @UtilizadorId;
-
-    INSERT INTO [betstrike-pagamentos].dbo.Transacoes
-        (ApostaId, UtilizadorId, TipoTransacao, Valor, DataHora, Estado)
-    VALUES (@ApostaId, @UtilizadorId, 'AP', @MontanteApostado, GETUTCDATE(), 'Processada');
-
-    COMMIT TRANSACTION;
+-- ----------------------------------------------------------------
+-- sp_RemoverAposta  — compensacao: elimina aposta nao activada financeiramente
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_RemoverAposta
+    @ApostaId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM dbo.Apostas WHERE Id = @ApostaId AND Estado = 1;
 END
 GO
 
@@ -477,14 +513,16 @@ BEGIN
     JOIN dbo.Jogos j ON j.Id = a.JogoId
     WHERE a.Id = @ApostaId;
 
-    IF @JogoId IS NULL      THROW 50014, N'Aposta não encontrada.', 1;
+    IF @JogoId IS NULL      THROW 50014, N'Aposta nao encontrada.', 1;
     IF @IsAdmin = 0 AND @DonoDaAposta != @UtilizadorId
-                            THROW 50016, N'Não tem permissão para cancelar esta aposta.', 1;
+                            THROW 50016, N'Nao tem permissao para cancelar esta aposta.', 1;
     IF @EstadoAposta != 1   THROW 50015, N'Apenas apostas pendentes podem ser canceladas.', 1;
-    IF @EstadoJogo != 1     THROW 50015, N'Só é permitido cancelar apostas enquanto o jogo está no estado Agendado.', 1;
+    IF @EstadoJogo != 1     THROW 50015, N'So e permitido cancelar apostas enquanto o jogo esta no estado Agendado.', 1;
 
-    -- Trigger trg_Apostas_ResolucaoFinanceira handles the RE transaction + balance refund
-    UPDATE dbo.Apostas SET Estado = 4 WHERE Id = @ApostaId;
+    -- PagamentoPendente=1: ApiApostas processara o reembolso via ApiPagamentos
+    UPDATE dbo.Apostas
+    SET Estado = 4, PagamentoPendente = 1
+    WHERE Id = @ApostaId;
 END
 GO
 
@@ -650,136 +688,139 @@ END
 GO
 
 -- ----------------------------------------------------------------
--- sp_CriarSaldoUtilizador  (chamado apos Identity criar o user)
+-- sp_ConsultarOddsJogo
 -- ----------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.sp_CriarSaldoUtilizador
-    @UtilizadorId NVARCHAR(450)
-AS
-BEGIN
-    SET NOCOUNT ON; SET XACT_ABORT ON;
-    BEGIN TRANSACTION;
-
-    IF NOT EXISTS (SELECT 1 FROM [betstrike-pagamentos].dbo.Saldo_Utilizador WHERE UtilizadorId = @UtilizadorId)
-    BEGIN
-        INSERT INTO [betstrike-pagamentos].dbo.Saldo_Utilizador (UtilizadorId, SaldoAtual)
-        VALUES (@UtilizadorId, 50.00);
-
-        INSERT INTO [betstrike-pagamentos].dbo.Transacoes
-            (UtilizadorId, TipoTransacao, Valor, Estado)
-        VALUES (@UtilizadorId, 'DE', 50.00, 'Processada');
-    END
-
-    COMMIT TRANSACTION;
-END
-GO
-
--- ----------------------------------------------------------------
--- sp_DepositarSaldo
--- ----------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.sp_DepositarSaldo
-    @UtilizadorId NVARCHAR(450),
-    @Valor        DECIMAL(10,2)
-AS
-BEGIN
-    SET NOCOUNT ON; SET XACT_ABORT ON;
-    BEGIN TRANSACTION;
-
-    IF @Valor <= 0 THROW 50010, 'O valor do deposito deve ser positivo.', 1;
-
-    IF NOT EXISTS (SELECT 1 FROM [betstrike-pagamentos].dbo.Saldo_Utilizador WHERE UtilizadorId = @UtilizadorId)
-        THROW 50012, 'Registo de saldo nao encontrado para o utilizador.', 1;
-
-    UPDATE [betstrike-pagamentos].dbo.Saldo_Utilizador
-    SET SaldoAtual = SaldoAtual + @Valor,
-        DataHoraAtualizacao = GETUTCDATE()
-    WHERE UtilizadorId = @UtilizadorId;
-
-    INSERT INTO [betstrike-pagamentos].dbo.Transacoes
-        (UtilizadorId, TipoTransacao, Valor, Estado)
-    VALUES (@UtilizadorId, 'DE', @Valor, 'Processada');
-
-    COMMIT TRANSACTION;
-END
-GO
-
--- ----------------------------------------------------------------
--- sp_ConsultarSaldo
--- ----------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.sp_ConsultarSaldo
-    @UtilizadorId NVARCHAR(450)
+CREATE OR ALTER PROCEDURE dbo.sp_ConsultarOddsJogo
+    @CodigoJogo VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT SaldoAtual, DataHoraAtualizacao
-    FROM [betstrike-pagamentos].dbo.Saldo_Utilizador
-    WHERE UtilizadorId = @UtilizadorId;
+    SELECT CodigoJogo, Odd1, OddX, Odd2
+    FROM dbo.Jogos
+    WHERE CodigoJogo = @CodigoJogo;
+END
+GO
+
+-- ----------------------------------------------------------------
+-- sp_ObterPagamentosPendentes
+--   Devolve apostas com PagamentoPendente=1 para um jogo (ou todos).
+--   Usado pela ApiApostas apos transicoes de estado.
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_ObterPagamentosPendentes
+    @CodigoJogo VARCHAR(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT a.Id, a.UtilizadorId, a.MontanteApostado, a.OddMomento, a.Estado,
+           CAST(a.MontanteApostado * a.OddMomento AS DECIMAL(10,2)) AS PremioPotencial
+    FROM dbo.Apostas a
+    JOIN dbo.Jogos j ON j.Id = a.JogoId
+    WHERE a.PagamentoPendente = 1
+      AND (@CodigoJogo IS NULL OR j.CodigoJogo = @CodigoJogo);
+END
+GO
+
+-- ----------------------------------------------------------------
+-- sp_MarcarPagamentoProcessado
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_MarcarPagamentoProcessado
+    @ApostaId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Apostas SET PagamentoPendente = 0 WHERE Id = @ApostaId;
 END
 GO
 
 -- ================================================================
--- TRIGGER: resolucao financeira (Ganha/Anulada -> Pagamentos)
+-- TABELA: LogAdmin (auditoria de acoes administrativas)
 -- ================================================================
-IF OBJECT_ID(N'dbo.trg_Apostas_ResolucaoFinanceira', N'TR') IS NOT NULL
-    DROP TRIGGER dbo.trg_Apostas_ResolucaoFinanceira;
+BEGIN TRY
+    BEGIN TRAN;
+
+    IF OBJECT_ID(N'dbo.LogAdmin', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.LogAdmin (
+            Id            INT IDENTITY(1,1) PRIMARY KEY,
+            AdminId       NVARCHAR(450) NOT NULL,
+            UtilizadorId  NVARCHAR(450) NULL,
+            Acao          NVARCHAR(100) NOT NULL,
+            Detalhe       NVARCHAR(MAX) NULL,
+            DataHora      DATETIME2     NOT NULL CONSTRAINT df_logadmin_data DEFAULT (GETUTCDATE())
+        );
+        CREATE INDEX IX_LogAdmin_AdminId      ON dbo.LogAdmin (AdminId);
+        CREATE INDEX IX_LogAdmin_UtilizadorId ON dbo.LogAdmin (UtilizadorId);
+        PRINT 'tabela LogAdmin criada.';
+    END
+    ELSE PRINT 'tabela LogAdmin ja existe.';
+
+    COMMIT TRAN;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+    PRINT 'erro tabela LogAdmin: ' + ERROR_MESSAGE();
+END CATCH;
 GO
 
-CREATE TRIGGER dbo.trg_Apostas_ResolucaoFinanceira
-ON dbo.Apostas
-AFTER UPDATE
+-- ----------------------------------------------------------------
+-- sp_ConsultarUtilizadores  (admin: lista users sem cross-DB)
+--   O saldo e obtido separadamente via ApiPagamentos.
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_ConsultarUtilizadores
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT UPDATE(Estado) RETURN;
+    SELECT
+        u.Id,
+        u.NomeCompleto,
+        u.Email,
+        u.DataRegisto,
+        CASE WHEN ur.UserId IS NOT NULL THEN 1 ELSE 0 END AS IsAdmin
+    FROM dbo.AspNetUsers u
+    LEFT JOIN dbo.AspNetUserRoles ur ON ur.UserId = u.Id
+        AND ur.RoleId = (SELECT Id FROM dbo.AspNetRoles WHERE NormalizedName = 'ADMIN')
+    ORDER BY u.DataRegisto DESC;
+END
+GO
 
-    -- Apostas Ganhas (Estado -> 2): PG + creditar saldo
-    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON i.Id = d.Id WHERE i.Estado = 2 AND d.Estado != 2)
-    BEGIN
-        INSERT INTO [betstrike-pagamentos].dbo.Transacoes
-            (ApostaId, UtilizadorId, TipoTransacao, Valor, DataHora, Estado)
-        SELECT i.Id, i.UtilizadorId, 'PG',
-               CAST(i.MontanteApostado * i.OddMomento AS DECIMAL(10,2)),
-               GETUTCDATE(), 'Processada'
-        FROM inserted i
-        JOIN deleted d ON i.Id = d.Id
-        WHERE i.Estado = 2 AND d.Estado != 2;
+-- ----------------------------------------------------------------
+-- sp_LogarAcaoAdmin  — regista accoes administrativas (sem ops financeiras)
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_LogarAcaoAdmin
+    @AdminId     NVARCHAR(450),
+    @UtilizadorId NVARCHAR(450) = NULL,
+    @Acao        NVARCHAR(100),
+    @Detalhe     NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.LogAdmin (AdminId, UtilizadorId, Acao, Detalhe)
+    VALUES (@AdminId, @UtilizadorId, @Acao, @Detalhe);
+END
+GO
 
-        UPDATE su
-        SET su.SaldoAtual = su.SaldoAtual + agg.Premio,
-            su.DataHoraAtualizacao = GETUTCDATE()
-        FROM [betstrike-pagamentos].dbo.Saldo_Utilizador su
-        JOIN (
-            SELECT i.UtilizadorId,
-                   SUM(CAST(i.MontanteApostado * i.OddMomento AS DECIMAL(10,2))) AS Premio
-            FROM inserted i JOIN deleted d ON i.Id = d.Id
-            WHERE i.Estado = 2 AND d.Estado != 2
-            GROUP BY i.UtilizadorId
-        ) agg ON su.UtilizadorId = agg.UtilizadorId;
-    END
-
-    -- Apostas Anuladas (Estado -> 4): RE + reembolsar saldo
-    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON i.Id = d.Id WHERE i.Estado = 4 AND d.Estado != 4)
-    BEGIN
-        INSERT INTO [betstrike-pagamentos].dbo.Transacoes
-            (ApostaId, UtilizadorId, TipoTransacao, Valor, DataHora, Estado)
-        SELECT i.Id, i.UtilizadorId, 'RE',
-               i.MontanteApostado,
-               GETUTCDATE(), 'Processada'
-        FROM inserted i
-        JOIN deleted d ON i.Id = d.Id
-        WHERE i.Estado = 4 AND d.Estado != 4;
-
-        UPDATE su
-        SET su.SaldoAtual = su.SaldoAtual + agg.Reembolso,
-            su.DataHoraAtualizacao = GETUTCDATE()
-        FROM [betstrike-pagamentos].dbo.Saldo_Utilizador su
-        JOIN (
-            SELECT i.UtilizadorId,
-                   SUM(i.MontanteApostado) AS Reembolso
-            FROM inserted i JOIN deleted d ON i.Id = d.Id
-            WHERE i.Estado = 4 AND d.Estado != 4
-            GROUP BY i.UtilizadorId
-        ) agg ON su.UtilizadorId = agg.UtilizadorId;
-    END
+-- ----------------------------------------------------------------
+-- sp_ConsultarLogAdmin
+-- ----------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.sp_ConsultarLogAdmin
+    @AdminId     NVARCHAR(450) = NULL,
+    @UtilizadorId NVARCHAR(450) = NULL,
+    @Pagina      INT           = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (ISNULL(@Pagina, 1) - 1) * 50;
+    SELECT
+        l.Id, l.AdminId, l.UtilizadorId, l.Acao, l.Detalhe, l.DataHora,
+        a.Email AS AdminEmail,
+        u.Email AS UtilizadorEmail
+    FROM dbo.LogAdmin l
+    LEFT JOIN dbo.AspNetUsers a ON a.Id = l.AdminId
+    LEFT JOIN dbo.AspNetUsers u ON u.Id = l.UtilizadorId
+    WHERE (@AdminId      IS NULL OR l.AdminId      = @AdminId)
+      AND (@UtilizadorId IS NULL OR l.UtilizadorId = @UtilizadorId)
+    ORDER BY l.DataHora DESC
+    OFFSET @Offset ROWS FETCH NEXT 50 ROWS ONLY;
 END
 GO
 
@@ -815,27 +856,24 @@ BEGIN
     GRANT EXECUTE ON dbo.sp_ConsultarAposta        TO [apostas];
     GRANT EXECUTE ON dbo.sp_InserirResultado       TO [apostas];
     GRANT EXECUTE ON dbo.sp_ConsultarResultadoJogo TO [apostas];
+    GRANT EXECUTE ON dbo.sp_ConsultarOddsJogo      TO [apostas];
     GRANT EXECUTE ON dbo.sp_EstatisticasJogo       TO [apostas];
     GRANT EXECUTE ON dbo.sp_EstatisticasCompeticao TO [apostas];
-    GRANT EXECUTE ON dbo.sp_CriarSaldoUtilizador   TO [apostas];
-    GRANT EXECUTE ON dbo.sp_DepositarSaldo         TO [apostas];
-    GRANT EXECUTE ON dbo.sp_ConsultarSaldo         TO [apostas];
+    GRANT EXECUTE ON dbo.sp_ConsultarUtilizadores     TO [apostas];
+    GRANT EXECUTE ON dbo.sp_LogarAcaoAdmin            TO [apostas];
+    GRANT EXECUTE ON dbo.sp_ObterPagamentosPendentes  TO [apostas];
+    GRANT EXECUTE ON dbo.sp_MarcarPagamentoProcessado TO [apostas];
+    GRANT EXECUTE ON dbo.sp_RemoverAposta             TO [apostas];
+    GRANT EXECUTE ON dbo.sp_ConsultarLogAdmin         TO [apostas];
+    GRANT SELECT, INSERT ON dbo.LogAdmin              TO [apostas];
     -- Acesso direto as tabelas Identity (EF Core Identity nao usa SPs)
     ALTER ROLE db_datareader ADD MEMBER [apostas];
     ALTER ROLE db_datawriter ADD MEMBER [apostas];
-    -- Cross-DB access to Pagamentos (login-level permission)
     PRINT 'permissoes atribuidas ao utilizador apostas.';
 END
 GO
 
--- Permitir ao login apostas aceder ao betstrike-pagamentos
-USE [betstrike-pagamentos];
-GO
-IF SUSER_ID('apostas') IS NOT NULL AND USER_ID('apostas') IS NULL
-BEGIN
-    CREATE USER [apostas] FOR LOGIN [apostas];
-    GRANT SELECT, INSERT, UPDATE ON dbo.Saldo_Utilizador TO [apostas];
-    GRANT SELECT, INSERT        ON dbo.Transacoes        TO [apostas];
-    PRINT 'utilizador apostas criado em betstrike-pagamentos com permissoes cross-db.';
-END
+-- Nota: o login [apostas] nao tem mais acesso directo a betstrike-pagamentos.
+-- A comunicacao entre ApiApostas e ApiPagamentos e feita via HTTP (X-Internal-Key).
+USE [betstrike-apostas];
 GO

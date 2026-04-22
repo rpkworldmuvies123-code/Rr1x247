@@ -1,113 +1,131 @@
 <main class="page" aria-labelledby="bet-title">
   <section class="panel">
-    <a [routerLink]="['/games', gameId()]">&larr; Voltar ao jogo</a>
+    <a [routerLink]="['/games', codigoJogo() ?? '']">&larr; Voltar ao jogo</a>
 
     <p class="eyebrow">Mercado clássico 1X2</p>
     <h1 id="bet-title">Faz a tua aposta</h1>
-    <p class="lead">As apostas são resolvidas sempre com base no resultado final dos 90 minutos.</p>
+    <p class="lead">Apostas resolvidas com base no resultado final dos 90 minutos.</p>
 
     @if (isLoading()) {
-      <p role="status" aria-live="polite">A carregar jogo...</p>
-    }
-
-    @if (errorMessage()) {
-      <p class="notice" role="status">{{ errorMessage() }}</p>
-    }
-
-    <section class="match-card" aria-labelledby="match-summary-title">
-      <div class="match-header">
-        <h2 id="match-summary-title">{{ game().equipaCasa }} vs {{ game().equipaFora }}</h2>
-        <p class="source">{{ sourceLabel() }}</p>
+      <div class="loading-skeleton" role="status" aria-live="polite">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card skeleton-bet">
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
       </div>
+    }
 
-      <dl class="details-grid">
-        <div>
-          <dt>Data do Jogo</dt>
-          <dd>{{ game().dataDoJogo }}</dd>
+    @if (!isLoading() && !game()) {
+      <p class="notice" role="alert">{{ errorMessage() || 'Jogo não encontrado.' }}</p>
+    }
+
+    @if (game(); as g) {
+      <section class="match-card" aria-labelledby="match-summary-title">
+        <div class="match-header">
+          <h2 id="match-summary-title">{{ g.homeTeam }} <span class="vs">vs</span> {{ g.awayTeam }}</h2>
+          <span class="badge badge-{{ stateClass() }}">{{ stateLabel() }}</span>
         </div>
-        <div>
-          <dt>Hora de Início</dt>
-          <dd>{{ game().horaDeInicio }}</dd>
+
+        <div class="match-score" [class.live]="g.estado === 2">
+          <span class="score-team">{{ g.homeTeam }}</span>
+          <span class="score-value">{{ g.homeScore }} – {{ g.awayScore }}</span>
+          <span class="score-team score-team-away">{{ g.awayTeam }}</span>
         </div>
-        <div>
-          <dt>Equipa Casa</dt>
-          <dd>{{ game().equipaCasa }}</dd>
+
+        <dl class="details-grid">
+          <div>
+            <dt>Competição</dt>
+            <dd>{{ g.competition }}</dd>
+          </div>
+          <div>
+            <dt>Data</dt>
+            <dd>{{ g.startTime | date:'dd/MM/yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Hora</dt>
+            <dd>{{ g.startTime | date:'HH:mm' }}</dd>
+          </div>
+        </dl>
+
+        <div class="balance-row">
+          <span class="balance-display">
+            <span class="balance-label">Saldo disponível</span>
+            <strong class="balance-value">
+              @if (walletBalance() !== null) {
+                {{ walletBalance()!.toFixed(2) }} EUR
+              } @else {
+                <span class="muted">Indisponível</span>
+              }
+            </strong>
+          </span>
         </div>
-        <div>
-          <dt>Equipa Fora</dt>
-          <dd>{{ game().equipaFora }}</dd>
+      </section>
+
+      @if (canBet()) {
+        <section class="bet-card" aria-labelledby="bet-options-title">
+          <h2 id="bet-options-title">Seleciona o teu mercado</h2>
+
+          <form [formGroup]="betForm" (ngSubmit)="placeBet()" novalidate>
+            <div class="options-group" role="group" aria-label="Mercado de aposta">
+              @for (option of betOptions; track option) {
+                <label class="option-row" [class.selected]="betForm.controls.outcome.value === option">
+                  <input type="radio" [value]="option" formControlName="outcome" />
+                  <span class="market-code">{{ option }}</span>
+                  <span class="market-label">{{ betMarketLabels[option] }}</span>
+                  @if (isOddsLoading()) {
+                    <span class="market-odd odds-shimmer" aria-label="A carregar odd"></span>
+                  } @else if (oddForOutcome(option); as o) {
+                    <span class="market-odd">× {{ o.toFixed(2) }}</span>
+                  } @else {
+                    <span class="market-odd muted">—</span>
+                  }
+                </label>
+              }
+            </div>
+
+            <div class="stake-row">
+              <label for="amount">Montante</label>
+              <div class="stake-input-wrap">
+                <input id="amount" type="number" step="0.01" min="0.01" formControlName="amount" />
+                <span class="stake-currency">EUR</span>
+              </div>
+            </div>
+
+            @if (prizePreview(); as prize) {
+              <div class="prize-preview">
+                <span class="prize-label">Prémio potencial</span>
+                <strong class="prize-value">{{ prize.toFixed(2) }} EUR</strong>
+              </div>
+            }
+
+            <button type="submit" class="submit-btn" [disabled]="isSubmittingBet()">
+              @if (isSubmittingBet()) { A registar aposta... } @else { Confirmar aposta }
+            </button>
+          </form>
+        </section>
+      } @else {
+        <div class="not-bettable" role="status">
+          <span class="badge badge-{{ stateClass() }}">{{ stateLabel() }}</span>
+          <p class="not-bettable-msg">
+            @switch (g.estado) {
+              @case (3) { Jogo finalizado — apostas encerradas. }
+              @case (4) { Jogo cancelado — apostas pendentes foram anuladas e reembolsadas. }
+              @case (5) { Jogo adiado — apostas pendentes foram anuladas e reembolsadas. }
+              @default { Apostas não disponíveis neste momento. }
+            }
+          </p>
         </div>
-        <div>
-          <dt>Golos Casa</dt>
-          <dd>{{ game().golosCasa }}</dd>
-        </div>
-        <div>
-          <dt>Golos Fora</dt>
-          <dd>{{ game().golosFora }}</dd>
-        </div>
-        <div>
-          <dt>Estado do Jogo</dt>
-          <dd>{{ stateLabel() }} ({{ game().estadoDoJogo }})</dd>
-        </div>
-      </dl>
+      }
 
-      <p><strong>Saldo atual:</strong>
-        @if (walletBalance() !== null) {
-          {{ walletBalance() }} EUR
-        } @else {
-          indisponivel
-        }
-      </p>
+      @if (errorMessage()) {
+        <p class="notice" role="alert">{{ errorMessage() }}</p>
+      }
 
-      <form [formGroup]="depositForm" (ngSubmit)="depositBalance()" novalidate>
-        <label for="deposit-value">Depositar saldo</label>
-        <input id="deposit-value" type="number" step="0.01" min="0.01" formControlName="value" />
-        <button type="submit" [disabled]="isDepositing()">
-          @if (isDepositing()) { A depositar... } @else { Depositar }
-        </button>
-      </form>
-    </section>
-
-    <section class="bet-card" aria-labelledby="bet-options-title">
-      <h2 id="bet-options-title">Tipos de Aposta</h2>
-      <p class="help-text">Seleciona uma opção do mercado 1X2.</p>
-
-      <form [formGroup]="betForm" (ngSubmit)="placeBet()" novalidate>
-        <fieldset class="options-group">
-          <legend class="sr-only">Selecionar mercado de aposta</legend>
-
-          @for (option of betOptions; track option) {
-            <label class="option-row" [class.selected]="betForm.controls.outcome.value === option">
-              <input type="radio" [value]="option" formControlName="outcome" />
-              <span class="market-code">{{ option }}</span>
-              <span class="market-label">{{ betMarketLabels[option] }}</span>
-            </label>
-          }
-        </fieldset>
-
-        <label for="amount">Montante (EUR)</label>
-        <input id="amount" type="number" step="0.01" min="0.01" formControlName="amount" />
-
-        <label for="odd">Odd no momento</label>
-        <input id="odd" type="number" step="0.01" min="1.01" formControlName="odd" />
-
-        <button type="submit" [disabled]="isSubmittingBet() || !canBet()">
-          @if (isSubmittingBet()) {
-            A registar aposta...
-          } @else {
-            Confirmar aposta
-          }
-        </button>
-
-        @if (!canBet()) {
-          <p class="notice" role="status">Apenas jogos em estado Agendado ou Em Curso aceitam novas apostas.</p>
-        }
-      </form>
-    </section>
-
-    @if (confirmationMessage()) {
-      <p class="success" role="status">{{ confirmationMessage() }}</p>
+      @if (confirmationMessage()) {
+        <p class="success" role="status">{{ confirmationMessage() }}</p>
+      }
     }
   </section>
 </main>
-

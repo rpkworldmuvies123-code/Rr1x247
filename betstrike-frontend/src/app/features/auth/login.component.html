@@ -27,7 +27,7 @@
         aria-describedby="password-error"
       />
       @if (form.controls.password.invalid && form.controls.password.touched) {
-        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 6 caracteres.</p>
+        <p id="password-error" class="error" role="alert">Introduz a palavra-passe.</p>
       }
 
       <button type="submit" [disabled]="isSubmitting()">

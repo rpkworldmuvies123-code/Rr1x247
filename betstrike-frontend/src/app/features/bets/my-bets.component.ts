@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -19,7 +19,7 @@ interface BetViewModel {
 
 @Component({
   selector: 'app-my-bets',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, DecimalPipe],
   templateUrl: './my-bets.component.html',
   styleUrl: './my-bets.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -41,16 +41,21 @@ export class MyBetsComponent {
 
   protected estadoLabel(estado: number): string {
     switch (estado) {
-      case 1:
-        return 'Pendente';
-      case 2:
-        return 'Ganha';
-      case 3:
-        return 'Perdida';
-      case 4:
-        return 'Anulada';
-      default:
-        return 'Desconhecido';
+      case 1: return 'Pendente';
+      case 2: return 'Ganha';
+      case 3: return 'Perdida';
+      case 4: return 'Anulada';
+      default: return 'Desconhecida';
+    }
+  }
+
+  protected betEstadoClass(estado: number): string {
+    switch (estado) {
+      case 1: return 'agendado';
+      case 2: return 'finalizado';
+      case 3: return 'cancelado';
+      case 4: return 'adiado';
+      default: return 'outro';
     }
   }
 
@@ -80,8 +85,8 @@ export class MyBetsComponent {
           this.cancelingBetId.set(null);
           this.loadBets();
         },
-        error: (error: Error) => {
-          this.errorMessage.set(error.message || 'Nao foi possivel cancelar a aposta.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível cancelar a aposta.');
           this.cancelingBetId.set(null);
         }
       });
@@ -99,9 +104,9 @@ export class MyBetsComponent {
           this.bets.set(apostas.map((aposta) => this.toViewModel(aposta)));
           this.isLoading.set(false);
         },
-        error: (error: Error) => {
+        error: (err: any) => {
           this.bets.set([]);
-          this.errorMessage.set(error.message || 'Nao foi possivel carregar as apostas.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar as apostas.');
           this.isLoading.set(false);
         }
       });

@@ -40,7 +40,7 @@
         aria-describedby="password-error"
       />
       @if (form.controls.password.invalid && form.controls.password.touched) {
-        <p id="password-error" class="error" role="alert">A palavra-passe deve ter pelo menos 6 caracteres.</p>
+        <p id="password-error" class="error" role="alert">Introduz a palavra-passe.</p>
       }
 
       <label for="passwordConfirm">Confirma palavra-passe</label>
@@ -56,7 +56,7 @@
         <p id="passwordConfirm-error" class="error" role="alert">As palavras-passe nao correspondem.</p>
       }
       @if (form.controls.passwordConfirm.invalid && form.controls.passwordConfirm.touched && !form.hasError('passwordMismatch')) {
-        <p id="passwordConfirm-error" class="error" role="alert">A confirmacao deve ter pelo menos 4 caracteres.</p>
+        <p id="passwordConfirm-error" class="error" role="alert">Confirma a palavra-passe.</p>
       }
 
       <button type="submit" [disabled]="isSubmitting()">

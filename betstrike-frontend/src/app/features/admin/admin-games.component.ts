@@ -33,7 +33,7 @@ export class AdminGamesComponent {
 
   protected readonly hasGames = computed(() => this.games().length > 0);
   protected readonly isEditOpen = computed(() => this.editingGame() !== null);
-  protected readonly statusOptions: ReadonlyArray<GameStatus> = ['SCHEDULED', 'LIVE', 'FINISHED'];
+  protected readonly statusOptions: ReadonlyArray<GameStatus> = ['SCHEDULED', 'LIVE', 'FINISHED', 'CANCELLED', 'POSTPONED'];
 
   protected readonly createForm = this.formBuilder.nonNullable.group({
     code: ['', [Validators.required]],
@@ -102,8 +102,8 @@ export class AdminGamesComponent {
           });
           this.loadGames();
         },
-        error: () => {
-          this.setFeedback('error', 'Falha ao criar jogo. Verifica dados e codigo unico.');
+        error: (err: any) => {
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao criar jogo.');
         }
       });
   }
@@ -137,8 +137,8 @@ export class AdminGamesComponent {
           this.closeEditDialog();
           this.loadGames();
         },
-        error: () => {
-          this.setFeedback('error', 'Falha ao atualizar o jogo.');
+        error: (err: any) => {
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao atualizar o jogo.');
         }
       });
   }
@@ -157,8 +157,8 @@ export class AdminGamesComponent {
           this.setFeedback('success', 'Jogo removido com sucesso.');
           this.loadGames();
         },
-        error: () => {
-          this.setFeedback('error', 'Falha ao remover jogo.');
+        error: (err: any) => {
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao remover jogo.');
         }
       });
   }
@@ -174,10 +174,10 @@ export class AdminGamesComponent {
           this.games.set(games);
           this.isLoading.set(false);
         },
-        error: () => {
+        error: (err: any) => {
           this.games.set([]);
           this.isLoading.set(false);
-          this.setFeedback('error', 'Nao foi possivel carregar os jogos.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Nao foi possivel carregar os jogos.');
         }
       });
   }

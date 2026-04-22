@@ -46,36 +46,40 @@
       <div class="table-wrap">
         <table>
           <caption class="sr-only">Lista de jogos da jornada</caption>
-           <thead>
-             <tr>
-               <th scope="col">Codigo</th>
-               <th scope="col">Jogo</th>
-               <th scope="col">Competicao</th>
-               <th scope="col">Data</th>
-               <th scope="col">Estado</th>
-               <th scope="col">Marcador</th>
-               <th scope="col">Detalhes</th>
-               <th scope="col">Apostar</th>
-             </tr>
-           </thead>
-           <tbody>
-             @for (game of games(); track game.id) {
-               <tr>
-                 <td>{{ game.code }}</td>
-                 <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
-                 <td>{{ game.competition }}</td>
-                 <td>{{ game.startTime | date: 'short' }}</td>
-                 <td>{{ statusLabel(game.estado ?? 1) }}</td>
-                 <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
-                 <td>
-                   <a [routerLink]="['/games', game.id]">Ver</a>
-                 </td>
-                 <td>
-                   <a [routerLink]="['/games', game.id, 'bet']">Apostar</a>
-                 </td>
-               </tr>
-             }
-           </tbody>
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Jogo</th>
+              <th scope="col">Competição</th>
+              <th scope="col">Data</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Marcador</th>
+              <th scope="col">Detalhes</th>
+              <th scope="col">Apostar</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (game of games(); track game.id) {
+              <tr>
+                <td>{{ game.code }}</td>
+                <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
+                <td>{{ game.competition }}</td>
+                <td>{{ game.startTime | date:'dd/MM/yy HH:mm' }}</td>
+                <td>
+                  <span class="badge badge-{{ estadoClass(game.estado) }}">{{ estadoLabel(game.estado) }}</span>
+                </td>
+                <td class="score-cell">{{ game.homeScore }} – {{ game.awayScore }}</td>
+                <td><a [routerLink]="['/games', game.id]">Ver</a></td>
+                <td>
+                  @if (canBet(game)) {
+                    <a class="bet-link" [routerLink]="['/games', game.id, 'bet']">Apostar</a>
+                  } @else {
+                    <span class="no-bet">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
         </table>
       </div>
     }
@@ -85,4 +89,3 @@
     }
   </section>
 </main>
-

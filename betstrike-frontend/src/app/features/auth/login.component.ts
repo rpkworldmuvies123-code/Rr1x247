@@ -21,7 +21,7 @@ export class LoginComponent {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    password: ['', [Validators.required]]
   });
 
   protected submit(): void {
@@ -41,8 +41,8 @@ export class LoginComponent {
           const destination = session.roles.some((role) => role.toLowerCase() === 'admin') ? ['/admin/games'] : ['/games'];
           void this.router.navigate(destination);
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel autenticar. Verifique os dados.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Nao foi possivel autenticar. Verifique os dados.');
         }
       });
   }
