@@ -43,6 +43,14 @@
         }
       </nav>
       <span class="user-name">{{ username() }}</span>
+      <span class="balance-chip" aria-live="polite">
+        Saldo:
+        @if (isBalanceLoading()) {
+          <span class="balance-value">...</span>
+        } @else {
+          <span class="balance-value">{{ balanceLabel() }}</span>
+        }
+      </span>
       <button type="button" class="logout-btn" (click)="logout()">Terminar sessão</button>
     </div>
   }

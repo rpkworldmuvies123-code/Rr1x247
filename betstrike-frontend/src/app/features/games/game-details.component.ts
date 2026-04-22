@@ -2,9 +2,10 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { switchMap, interval } from 'rxjs';
+import { Observable, catchError, forkJoin, interval, of, switchMap } from 'rxjs';
+import { ApostasApiService, EstatisticasJogoResponse, ResultadoResponse } from '../../core/api/apostas-api.service';
 import { JogosService } from '../../core/api/jogos.service';
-import { GAME_STATUS_LABEL, GAME_STATE_LABEL, GameDetails } from '../../core/models/game.model';
+import { GAME_STATE_LABEL, GameDetails } from '../../core/models/game.model';
 
 @Component({
   selector: 'app-game-details',
@@ -16,11 +17,14 @@ import { GAME_STATUS_LABEL, GAME_STATE_LABEL, GameDetails } from '../../core/mod
 export class GameDetailsComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly jogosService = inject(JogosService);
+  private readonly apostasApiService = inject(ApostasApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly game = signal<GameDetails | null>(null);
+  protected readonly resultado = signal<ResultadoResponse | null>(null);
+  protected readonly estatisticas = signal<EstatisticasJogoResponse | null>(null);
   protected readonly statusLabel = computed(() => {
     const game = this.game();
     if (!game) return '';
@@ -34,13 +38,26 @@ export class GameDetailsComponent {
           const codigoJogo = params.get('id') ?? '';
           this.errorMessage.set('');
           this.isLoading.set(true);
-          return this.jogosService.obterPorCodigo(codigoJogo);
+
+          if (!codigoJogo) {
+            this.errorMessage.set('Codigo do jogo nao encontrado.');
+            this.isLoading.set(false);
+            return of(null);
+          }
+
+          return this.loadGameData(codigoJogo);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (jogo) => {
-          this.game.set(this.mapJogoDetalheToGameDetails(jogo));
+        next: (data) => {
+          if (!data) {
+            return;
+          }
+
+          this.game.set(this.mapJogoDetalheToGameDetails(data.jogo));
+          this.resultado.set(data.resultado);
+          this.estatisticas.set(data.estatisticas);
           this.isLoading.set(false);
         },
         error: (error: any) => {
@@ -55,17 +72,36 @@ export class GameDetailsComponent {
         switchMap(() => {
           const codigoJogo = this.route.snapshot.paramMap.get('id') ?? '';
           if (!codigoJogo) {
-            return new Promise((reject) => reject('Código do jogo não encontrado'));
+            return of(null);
           }
-          return this.jogosService.obterPorCodigo(codigoJogo);
+
+          return this.loadGameData(codigoJogo);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (jogo) => {
-          this.game.set(this.mapJogoDetalheToGameDetails(jogo));
+        next: (data) => {
+          if (!data) {
+            return;
+          }
+
+          this.game.set(this.mapJogoDetalheToGameDetails(data.jogo));
+          this.resultado.set(data.resultado);
+          this.estatisticas.set(data.estatisticas);
         }
       });
+  }
+
+  private loadGameData(codigoJogo: string): Observable<{
+    jogo: any;
+    resultado: ResultadoResponse | null;
+    estatisticas: EstatisticasJogoResponse | null;
+  }> {
+    return forkJoin({
+      jogo: this.jogosService.obterPorCodigo(codigoJogo),
+      resultado: this.apostasApiService.consultarResultado(codigoJogo).pipe(catchError(() => of(null))),
+      estatisticas: this.apostasApiService.consultarEstatisticasJogo(codigoJogo).pipe(catchError(() => of(null)))
+    });
   }
 
   private mapJogoDetalheToGameDetails(jogo: any): GameDetails {
