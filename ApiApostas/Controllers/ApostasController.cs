@@ -8,9 +8,9 @@ namespace ApiApostas.Controllers;
 [ApiController]
 [Route("api/apostas")]
 [Authorize]
-public class ApostasController(DatabaseService db) : ControllerBase
+public class ApostasController(DatabaseService db, PagamentosClient pagamentos) : ControllerBase
 {
-    public record CriarApostaRequest(string CodigoJogo, string TipoAposta, decimal MontanteApostado, decimal OddMomento);
+    public record CriarApostaRequest(string CodigoJogo, string TipoAposta, decimal MontanteApostado);
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     private bool IsAdmin => User.IsInRole("Admin");
@@ -38,15 +38,47 @@ public class ApostasController(DatabaseService db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] CriarApostaRequest req)
     {
-        var id = await db.InserirApostaAsync(
-            req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado, req.OddMomento);
-        return Created($"/api/apostas/{id}", new { id });
+        // 1. Inserir aposta (valida jogo, tipo, montante; devolve a odd aplicada)
+        var (apostaId, odd) = await db.InserirApostaAsync(
+            req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado);
+
+        // 2. Debitar saldo via ApiPagamentos (compensação se falhar)
+        try
+        {
+            await pagamentos.DebitarApostaAsync(UserId, req.MontanteApostado, apostaId);
+        }
+        catch
+        {
+            await db.RemoverApostaAsync(apostaId);
+            throw new DomainException("Saldo insuficiente ou falha no processamento do pagamento.", 422);
+        }
+
+        return Created($"/api/apostas/{apostaId}", new { id = apostaId, oddMomento = odd });
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Cancelar(int id)
     {
+        // 1. Cancelar aposta na DB (marca PagamentoPendente=1)
         await db.CancelarApostaAsync(id, UserId, IsAdmin);
+
+        // 2. Emitir reembolso via ApiPagamentos
+        var aposta = await db.ConsultarApostaAsync(id, null, isAdmin: true);
+        var montante = Convert.ToDecimal(aposta["MontanteApostado"]);
+        var utilizadorId = (string)aposta["UtilizadorId"]!;
+
+        try
+        {
+            await pagamentos.CreditarApostaAsync(utilizadorId, montante, "RE", id);
+            await db.MarcarPagamentoProcessadoAsync(id);
+        }
+        catch (Exception ex)
+        {
+            // PagamentoPendente permanece 1 para retry posterior
+            // Não falha o cancelamento — a aposta está cancelada na DB
+            _ = ex;
+        }
+
         return NoContent();
     }
 }

@@ -141,6 +141,33 @@ a:hover {
   color: var(--link-hover);
 }
 
+.bet-link {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--line-strong);
+  color: var(--primary-strong);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.bet-link:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary-strong);
+  color: var(--primary-strong);
+}
+
+.no-bet {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.score-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 .error {
   color: var(--error-text);
 }

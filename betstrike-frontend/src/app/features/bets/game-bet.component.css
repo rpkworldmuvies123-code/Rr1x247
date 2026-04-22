@@ -62,9 +62,52 @@ h1 {
 .match-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.vs {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.match-score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 6px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+}
+
+.match-score.live {
+  border-color: #2a4a77;
+  background: #111d2e;
+}
+
+:root[data-theme='light'] .match-score.live {
+  border-color: #a8c4f0;
+  background: #f0f5ff;
+}
+
+.score-team {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.score-team-away {
+  text-align: right;
+}
+
+.score-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text);
 }
 
 .details-grid {
@@ -124,6 +167,114 @@ dd {
 
 .market-label {
   color: var(--text);
+  flex: 1;
+}
+
+.market-odd {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--primary-strong, #407bff);
+  min-width: 3rem;
+  text-align: right;
+}
+
+.odds-shimmer {
+  display: inline-block;
+  width: 3rem;
+  height: 1em;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--line) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite linear;
+  vertical-align: middle;
+}
+
+form {
+  display: grid;
+  gap: 8px;
+}
+
+label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+input {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px;
+}
+
+.stake-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.stake-row label {
+  min-width: 72px;
+}
+
+.stake-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.stake-input-wrap input {
+  border: 0;
+  width: 110px;
+  padding: 8px;
+}
+
+.stake-currency {
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-left: 1px solid var(--line);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.prize-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+}
+
+.prize-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.prize-value {
+  font-size: 1.1rem;
+  color: var(--success-text);
+}
+
+.not-bettable {
+  margin-top: 12px;
+  padding: 18px 16px;
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.not-bettable-msg {
+  margin: 0;
+  color: var(--text-muted);
 }
 
 button {
@@ -139,7 +290,14 @@ button {
 }
 
 button:active {
-  background: #f0f0f0;
+  background: var(--surface-alt);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 14px;
+  font-size: 15px;
 }
 
 .notice,
@@ -158,6 +316,88 @@ button:active {
   color: var(--success-text);
   background: rgb(102 213 142 / 10%);
 }
+
+.muted {
+  color: var(--text-muted);
+}
+
+.estado-tag {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+}
+
+.balance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.balance-display {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.balance-value {
+  font-size: 1rem;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.loading-skeleton {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-card {
+  border: 1px solid var(--line);
+  padding: 20px 12px;
+  height: 160px;
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--surface) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.skeleton-bet {
+  height: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-row {
+  height: 44px;
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--surface) 50%, var(--surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border: 1px solid var(--line);
+}
+
+.skeleton-row:nth-child(2) { animation-delay: 0.15s; }
+.skeleton-row:nth-child(3) { animation-delay: 0.3s; }
 
 .sr-only {
   position: absolute;

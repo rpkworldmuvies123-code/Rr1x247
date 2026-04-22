@@ -30,6 +30,7 @@
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
       RESULTADOS_DB_PASSWORD: "${RESULTADOS_DB_PASSWORD}"
       APOSTAS_DB_PASSWORD: "${APOSTAS_DB_PASSWORD}"
+      PAGAMENTOS_DB_PASSWORD: "${PAGAMENTOS_DB_PASSWORD}"
       DB_HOST: "mssql_db"
       DB_PORT: "1433"
     entrypoint: ["/bin/bash", "/sql/init-db.sh"]
@@ -101,6 +102,8 @@
       Admin__Email: "${ADMIN_EMAIL:-admin@betstrike.pt}"
       Admin__Password: "${ADMIN_PASSWORD}"
       ApiResultados__BaseUrl: "http://apiresultados:8080"
+      ApiPagamentos__BaseUrl: "http://apipagamentos:8080"
+      ApiPagamentos__InternalKey: "${PAGAMENTOS_INTERNAL_KEY}"
       Sincronizacao__IntervaloSegundos: "${APOSTAS_SYNC_INTERVALO:-5}"
     ports:
       - "${APIAPOSTAS_PORT:-5141}:8080"
@@ -117,17 +120,32 @@
         condition: service_completed_successfully
       apiresultados:
         condition: service_healthy
+      apipagamentos:
+        condition: service_healthy
 
   apipagamentos:
     image: apipagamentos
     build:
       context: .
       dockerfile: ApiPagamentos/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Pagamentos: "Server=${PAGAMENTOS_DB_HOST:-mssql_db},${PAGAMENTOS_DB_PORT:-1433};Database=${PAGAMENTOS_DB_NAME:-betstrike-pagamentos};User Id=${PAGAMENTOS_DB_USER:-pagamentos};Password=${PAGAMENTOS_DB_PASSWORD};TrustServerCertificate=True;"
+      InternalKey: "${PAGAMENTOS_INTERNAL_KEY}"
+    ports:
+      - "${APIPAGAMENTOS_PORT:-5232}:8080"
     networks:
       - env_net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
     depends_on:
-      mssql_db:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
 
   frontend:
     image: betstrike-frontend

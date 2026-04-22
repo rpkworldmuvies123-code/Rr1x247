@@ -5,12 +5,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { timer } from 'rxjs';
 import { BackendApiService } from '../../core/api/backend-api.service';
-import {
-  GAME_STATUS_LABEL,
-  Game,
-  GameFilters,
-  GameStatus
-} from '../../core/models/game.model';
+import { Game, estadoClass, estadoLabel } from '../../core/models/game.model';
 
 interface GoalNotification {
   id: string;
@@ -38,163 +33,129 @@ export class GamesListComponent {
   protected readonly games = signal<ReadonlyArray<Game>>([]);
   protected readonly hasGames = computed(() => this.games().length > 0);
   protected readonly goalNotifications = signal<ReadonlyArray<GoalNotification>>([]);
+  protected readonly estadoLabel = estadoLabel;
+  protected readonly estadoClass = estadoClass;
 
-  protected readonly statusOptions: ReadonlyArray<{ value: ''; label: string } | { value: GameStatus; label: string }> = [
+  protected readonly statusOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'open', label: 'Apostas abertas' },
     { value: '', label: 'Todos os estados' },
-    { value: 'SCHEDULED', label: GAME_STATUS_LABEL.SCHEDULED },
-    { value: 'LIVE', label: GAME_STATUS_LABEL.LIVE },
-    { value: 'FINISHED', label: GAME_STATUS_LABEL.FINISHED }
+    { value: '1', label: 'Agendado' },
+    { value: '2', label: 'Em Curso' },
+    { value: '3', label: 'Finalizado' },
+    { value: '4', label: 'Cancelado' },
+    { value: '5', label: 'Adiado' }
   ];
 
   protected readonly filterForm = this.formBuilder.nonNullable.group({
     date: '',
-    competition: '',
-    status: this.formBuilder.nonNullable.control<GameStatus | ''>('')
+    estado: 'open'
   });
 
   constructor() {
-    this.destroyRef.onDestroy(() => {
-      this.clearGoalNotificationTimers();
-    });
+    this.destroyRef.onDestroy(() => this.clearGoalNotificationTimers());
 
     timer(0, 10_000)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.fetchGames(this.currentFilters());
-      });
+      .subscribe(() => this.fetchGames());
   }
 
   protected applyFilters(): void {
-    this.fetchGames(this.currentFilters());
+    this.fetchGames();
   }
 
   protected clearFilters(): void {
-    this.filterForm.reset({
-      date: '',
-      competition: '',
-      status: ''
-    });
-
-    this.fetchGames({});
+    this.filterForm.reset({ date: '', estado: 'open' });
+    this.fetchGames();
   }
 
-  protected statusLabel(status: GameStatus): string {
-    return GAME_STATUS_LABEL[status];
+  protected canBet(game: Game): boolean {
+    return game.estado === 1 || game.estado === 2;
   }
 
-  private fetchGames(filters: GameFilters): void {
+  private fetchGames(): void {
     this.errorMessage.set('');
     this.isLoading.set(true);
+
+    const raw = this.filterForm.getRawValue();
+    const isOpenFilter = raw.estado?.trim() === 'open';
+    const filters: { date?: string; estado?: number } = {};
+    if (raw.date?.trim()) filters.date = raw.date.trim();
+    if (!isOpenFilter && raw.estado?.trim()) filters.estado = parseInt(raw.estado.trim(), 10);
 
     this.backendApiService
       .getGames(filters)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (games) => {
-          this.detectGoals(games);
-          this.updatePreviousScores(games);
-          this.games.set(games);
+          const list = isOpenFilter
+            ? [...games].filter((g) => g.estado === 1 || g.estado === 2)
+            : [...games];
+          this.detectGoals(list);
+          this.updatePreviousScores(list);
+          this.games.set(list);
           this.isLoading.set(false);
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel carregar os jogos.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar os jogos.');
           this.isLoading.set(false);
         }
       });
   }
 
-  private currentFilters(): GameFilters {
-    const raw = this.filterForm.getRawValue();
-
-    return {
-      date: raw.date || undefined,
-      competition: raw.competition.trim() || undefined,
-      status: raw.status || undefined
-    };
-  }
-
   private detectGoals(games: ReadonlyArray<Game>): void {
     for (const game of games) {
-      const previousScore = this.previousScoresByGame.get(game.id);
+      const prev = this.previousScoresByGame.get(game.id);
+      if (!prev) continue;
 
-      if (!previousScore) {
-        continue;
+      let h = prev.homeScore;
+      let a = prev.awayScore;
+
+      while (h < game.homeScore) {
+        h++;
+        this.addGoalNotification(`Golo! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
       }
-
-      let trackedHomeScore = previousScore.homeScore;
-      let trackedAwayScore = previousScore.awayScore;
-
-      while (trackedHomeScore < game.homeScore) {
-        trackedHomeScore += 1;
-        this.addGoalNotification(
-          `Golo do ${game.homeTeam}: ${game.homeTeam} ${trackedHomeScore} - ${trackedAwayScore} ${game.awayTeam}`
-        );
-      }
-
-      while (trackedAwayScore < game.awayScore) {
-        trackedAwayScore += 1;
-        this.addGoalNotification(
-          `Golo do ${game.awayTeam}: ${game.homeTeam} ${trackedHomeScore} - ${trackedAwayScore} ${game.awayTeam}`
-        );
+      while (a < game.awayScore) {
+        a++;
+        this.addGoalNotification(`Golo! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
       }
     }
   }
 
   private addGoalNotification(message: string): void {
-    const notificationId = `goal-${++this.goalNotificationSequence}`;
+    const id = `goal-${++this.goalNotificationSequence}`;
+    let removed: ReadonlyArray<GoalNotification> = [];
 
-    let removedNotifications: ReadonlyArray<GoalNotification> = [];
     this.goalNotifications.update((current) => {
-      const next = [{ id: notificationId, message }, ...current];
-
-      if (next.length <= 4) {
-        return next;
-      }
-
-      removedNotifications = next.slice(4);
+      const next = [{ id, message }, ...current];
+      if (next.length <= 4) return next;
+      removed = next.slice(4);
       return next.slice(0, 4);
     });
 
-    for (const removedNotification of removedNotifications) {
-      this.clearGoalNotificationTimer(removedNotification.id);
-    }
+    for (const n of removed) this.clearGoalNotificationTimer(n.id);
 
-    const timeoutId = setTimeout(() => {
-      this.goalNotifications.update((current) => current.filter((notification) => notification.id !== notificationId));
-      this.goalNotificationTimers.delete(notificationId);
+    const tid = setTimeout(() => {
+      this.goalNotifications.update((c) => c.filter((n) => n.id !== id));
+      this.goalNotificationTimers.delete(id);
     }, this.notificationDurationMs);
 
-    this.goalNotificationTimers.set(notificationId, timeoutId);
+    this.goalNotificationTimers.set(id, tid);
   }
 
   private updatePreviousScores(games: ReadonlyArray<Game>): void {
     this.previousScoresByGame.clear();
-
-    for (const game of games) {
-      this.previousScoresByGame.set(game.id, {
-        homeScore: game.homeScore,
-        awayScore: game.awayScore
-      });
+    for (const g of games) {
+      this.previousScoresByGame.set(g.id, { homeScore: g.homeScore, awayScore: g.awayScore });
     }
   }
 
-  private clearGoalNotificationTimer(notificationId: string): void {
-    const timeoutId = this.goalNotificationTimers.get(notificationId);
-
-    if (!timeoutId) {
-      return;
-    }
-
-    clearTimeout(timeoutId);
-    this.goalNotificationTimers.delete(notificationId);
+  private clearGoalNotificationTimer(id: string): void {
+    const tid = this.goalNotificationTimers.get(id);
+    if (tid) { clearTimeout(tid); this.goalNotificationTimers.delete(id); }
   }
 
   private clearGoalNotificationTimers(): void {
-    for (const timeoutId of this.goalNotificationTimers.values()) {
-      clearTimeout(timeoutId);
-    }
-
+    for (const tid of this.goalNotificationTimers.values()) clearTimeout(tid);
     this.goalNotificationTimers.clear();
   }
 }
-

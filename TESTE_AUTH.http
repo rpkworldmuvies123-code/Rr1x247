@@ -1,0 +1,94 @@
+﻿/**
+ * Testes da API de Autenticação - ApiApostas
+ * Porta: 5141 (conforme docker-compose.yaml)
+ */
+
+### 1. REGISTAR NOVO UTILIZADOR
+POST http://localhost:5141/api/auth/registar
+Content-Type: application/json
+
+{
+  "email": "user@exemplo.pt",
+  "password": "Senha123",
+  "nomeCompleto": "João Silva"
+}
+
+### RESPOSTA ESPERADA
+201 Created
+{
+  "token": "eyJhbGc...",
+  "utilizadorId": "guid",
+  "email": "user@exemplo.pt",
+  "nomeCompleto": "João Silva"
+}
+
+---
+
+### 2. LOGIN COM CREDENCIAIS VÁLIDAS
+POST http://localhost:5141/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@betstrike.pt",
+  "password": "Admin123!"
+}
+
+### RESPOSTA ESPERADA
+200 OK
+{
+  "token": "eyJhbGc...",
+  "utilizadorId": "guid",
+  "email": "admin@betstrike.pt",
+  "nomeCompleto": "Administrador BetStrike"
+}
+
+---
+
+### 3. OBTER DADOS DO UTILIZADOR AUTENTICADO
+GET http://localhost:5141/api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### RESPOSTA ESPERADA
+200 OK
+{
+  "utilizadorId": "guid",
+  "email": "admin@betstrike.pt",
+  "nomeCompleto": "Administrador BetStrike",
+  "roles": ["Admin"]
+}
+
+---
+
+### 4. ERRO - REGISTAR SEM NOME COMPLETO
+POST http://localhost:5141/api/auth/registar
+Content-Type: application/json
+
+{
+  "email": "user2@exemplo.pt",
+  "password": "Senha123",
+  "nomeCompleto": ""
+}
+
+### RESPOSTA ESPERADA
+400 Bad Request
+{
+  "message": "NomeCompleto é obrigatório."
+}
+
+---
+
+### 5. ERRO - LOGIN COM CREDENCIAIS INVÁLIDAS
+POST http://localhost:5141/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@betstrike.pt",
+  "password": "SenhaErrada"
+}
+
+### RESPOSTA ESPERADA
+401 Unauthorized
+{
+  "message": "Credenciais inválidas."
+}
+

@@ -10,34 +10,37 @@
       <p class="error" role="alert">{{ errorMessage() }}</p>
     }
 
-    @if (!isLoading()) {
-      @if (game(); as gameData) {
-        <h1 id="details-title">{{ gameData.homeTeam }} vs {{ gameData.awayTeam }}</h1>
-        <p class="meta">{{ gameData.competition }} · {{ gameData.startTime | date: 'full' }}</p>
-        <p class="score">{{ gameData.homeScore }} - {{ gameData.awayScore }}</p>
-        <p><strong>Estado:</strong> {{ statusLabel() }}</p>
-        <p><strong>Codigo:</strong> {{ gameData.code }}</p>
+    @if (!isLoading() && game(); as g) {
+      <h1 id="details-title">{{ g.homeTeam }} vs {{ g.awayTeam }}</h1>
+      <p class="meta">{{ g.competition }} · {{ g.startTime | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p class="score">{{ g.homeScore }} – {{ g.awayScore }}</p>
+      <p><strong>Estado:</strong> <span class="badge badge-{{ statusClass() }}">{{ statusLabel() }}</span></p>
+      <p><strong>Código:</strong> {{ g.code }}</p>
 
-        <p>
-          <a [routerLink]="['/games', gameData.id, 'bet']">Apostar neste jogo</a>
-        </p>
+      @if (g.estado === 1 || g.estado === 2) {
+        <p><a [routerLink]="['/games', g.id, 'bet']">Apostar neste jogo</a></p>
+      }
 
-        @if (gameData.venue) {
-          <p><strong>Estadio:</strong> {{ gameData.venue }}</p>
-        }
+      <h2>Resultado oficial</h2>
+      @if (resultado(); as r) {
+        <p>{{ r.EquipaCasa }} <strong>{{ r.GolosCasa }} – {{ r.GolosVisitante }}</strong> {{ r.EquipaFora }}</p>
+      } @else {
+        <p class="muted">Sem resultado oficial registado.</p>
+      }
 
-        <h2>Eventos</h2>
-        @if (gameData.events.length > 0) {
-          <ul>
-            @for (event of gameData.events; track event) {
-              <li>{{ event }}</li>
-            }
-          </ul>
-        } @else {
-          <p>Sem eventos registados.</p>
-        }
+      <h2>Estatísticas de apostas</h2>
+      @if (estatisticas(); as s) {
+        <ul class="stats-list">
+          <li>Total apostado: <strong>{{ s.TotalApostado | number:'1.2-2' }} EUR</strong></li>
+          <li>Total de apostas: <strong>{{ s.TotalApostas }}</strong></li>
+          <li>Casa / Empate / Fora: <strong>{{ s.Apostas1 }} / {{ s.ApostasX }} / {{ s.Apostas2 }}</strong></li>
+          <li>Pendentes / Ganhas / Perdidas / Anuladas:
+            <strong>{{ s.ApostasPendentes }} / {{ s.ApostasGanhas }} / {{ s.ApostasPerdidas }} / {{ s.ApostasAnuladas }}</strong>
+          </li>
+        </ul>
+      } @else {
+        <p class="muted">Sem estatísticas disponíveis.</p>
       }
     }
   </section>
 </main>
-

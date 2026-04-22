@@ -41,8 +41,9 @@ public class DatabaseService(IConfiguration configuration)
             50016 => 403,
             50017 => 409, // resultado duplicado
             50018 => 400,
-            50019 => 404,
+            50019 => 409, // jogo tem apostas associadas
             50020 => 400,
+            50021 => 404, // utilizador não encontrado (admin SPs)
             _ => 500
         };
         throw new DomainException(msg, statusCode);
@@ -125,8 +126,8 @@ public class DatabaseService(IConfiguration configuration)
     // APOSTAS
     // ──────────────────────────────────────────────
 
-    public async Task<int> InserirApostaAsync(string codigoJogo, string utilizadorId,
-        string tipoAposta, decimal montante, decimal odd)
+    public async Task<(int ApostaId, decimal OddMomento)> InserirApostaAsync(string codigoJogo, string utilizadorId,
+        string tipoAposta, decimal montante)
     {
         await using var con = CreateConnection();
         await con.OpenAsync();
@@ -135,12 +136,58 @@ public class DatabaseService(IConfiguration configuration)
         cmd.Parameters.AddWithValue("@UtilizadorId", utilizadorId);
         cmd.Parameters.AddWithValue("@TipoAposta", tipoAposta);
         cmd.Parameters.AddWithValue("@MontanteApostado", montante);
-        cmd.Parameters.AddWithValue("@OddMomento", odd);
         var idParam = cmd.Parameters.Add("@ApostaId", SqlDbType.Int);
         idParam.Direction = ParameterDirection.Output;
+        var oddParam = cmd.Parameters.Add("@OddMomento", SqlDbType.Decimal);
+        oddParam.Direction = ParameterDirection.Output;
+        oddParam.Precision = 10; oddParam.Scale = 4;
         try { await cmd.ExecuteNonQueryAsync(); }
         catch (SqlException ex) { MapSqlError(ex); }
-        return (int)idParam.Value;
+        return ((int)idParam.Value, (decimal)oddParam.Value);
+    }
+
+    public async Task RemoverApostaAsync(int apostaId)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand("sp_RemoverAposta", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@ApostaId", apostaId);
+        try { await cmd.ExecuteNonQueryAsync(); }
+        catch (SqlException ex) { MapSqlError(ex); }
+    }
+
+    public async Task<List<Dictionary<string, object?>>> ObterPagamentosPendentesAsync(string? codigoJogo = null)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand("sp_ObterPagamentosPendentes", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@CodigoJogo", (object?)codigoJogo ?? DBNull.Value);
+        return await ReadRowsAsync(cmd);
+    }
+
+    public async Task MarcarPagamentoProcessadoAsync(int apostaId)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand("sp_MarcarPagamentoProcessado", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@ApostaId", apostaId);
+        try { await cmd.ExecuteNonQueryAsync(); }
+        catch (SqlException ex) { MapSqlError(ex); }
+    }
+
+    public async Task<Dictionary<string, object?>> ConsultarOddsJogoAsync(string codigoJogo)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand("sp_ConsultarOddsJogo", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@CodigoJogo", codigoJogo);
+        try
+        {
+            var rows = await ReadRowsAsync(cmd);
+            if (rows.Count == 0) throw new DomainException($"Jogo '{codigoJogo}' não encontrado.", 404);
+            return rows[0];
+        }
+        catch (SqlException ex) { MapSqlError(ex); throw; }
     }
 
     public async Task CancelarApostaAsync(int apostaId, string utilizadorId, bool isAdmin = false)
@@ -257,43 +304,40 @@ public class DatabaseService(IConfiguration configuration)
     }
 
     // ──────────────────────────────────────────────
-    // PAGAMENTOS / SALDO
+    // ADMIN (sem operações financeiras — delegadas a ApiPagamentos)
     // ──────────────────────────────────────────────
 
-    public async Task CriarSaldoUtilizadorAsync(string utilizadorId)
+    public async Task<List<Dictionary<string, object?>>> ConsultarUtilizadoresAsync()
     {
         await using var con = CreateConnection();
         await con.OpenAsync();
-        await using var cmd = new SqlCommand("sp_CriarSaldoUtilizador", con) { CommandType = CommandType.StoredProcedure };
-        cmd.Parameters.AddWithValue("@UtilizadorId", utilizadorId);
+        await using var cmd = new SqlCommand("sp_ConsultarUtilizadores", con) { CommandType = CommandType.StoredProcedure };
+        return await ReadRowsAsync(cmd);
+    }
+
+    public async Task LogarAcaoAdminAsync(string adminId, string? utilizadorId, string acao, string? detalhe)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand("sp_LogarAcaoAdmin", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@AdminId", adminId);
+        cmd.Parameters.AddWithValue("@UtilizadorId", (object?)utilizadorId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Acao", acao);
+        cmd.Parameters.AddWithValue("@Detalhe", (object?)detalhe ?? DBNull.Value);
         try { await cmd.ExecuteNonQueryAsync(); }
         catch (SqlException ex) { MapSqlError(ex); }
     }
 
-    public async Task DepositarSaldoAsync(string utilizadorId, decimal valor)
+    public async Task<List<Dictionary<string, object?>>> ConsultarLogAdminAsync(
+        string? adminId = null, string? utilizadorId = null, int? pagina = null)
     {
         await using var con = CreateConnection();
         await con.OpenAsync();
-        await using var cmd = new SqlCommand("sp_DepositarSaldo", con) { CommandType = CommandType.StoredProcedure };
-        cmd.Parameters.AddWithValue("@UtilizadorId", utilizadorId);
-        cmd.Parameters.AddWithValue("@Valor", valor);
-        try { await cmd.ExecuteNonQueryAsync(); }
-        catch (SqlException ex) { MapSqlError(ex); }
-    }
-
-    public async Task<Dictionary<string, object?>> ConsultarSaldoAsync(string utilizadorId)
-    {
-        await using var con = CreateConnection();
-        await con.OpenAsync();
-        await using var cmd = new SqlCommand("sp_ConsultarSaldo", con) { CommandType = CommandType.StoredProcedure };
-        cmd.Parameters.AddWithValue("@UtilizadorId", utilizadorId);
-        try
-        {
-            var rows = await ReadRowsAsync(cmd);
-            if (rows.Count == 0) throw new DomainException("Saldo não encontrado.", 404);
-            return rows[0];
-        }
-        catch (SqlException ex) { MapSqlError(ex); throw; }
+        await using var cmd = new SqlCommand("sp_ConsultarLogAdmin", con) { CommandType = CommandType.StoredProcedure };
+        cmd.Parameters.AddWithValue("@AdminId", (object?)adminId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@UtilizadorId", (object?)utilizadorId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Pagina", (object?)pagina ?? DBNull.Value);
+        return await ReadRowsAsync(cmd);
     }
 
     // ──────────────────────────────────────────────

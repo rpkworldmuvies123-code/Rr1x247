@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthService, UserRole } from '../../core/auth/auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 function passwordMatchValidator(): ValidatorFn {
@@ -39,11 +39,10 @@ export class RegisterComponent {
 
   protected readonly form = this.formBuilder.nonNullable.group(
     {
-      username: ['', [Validators.required, Validators.minLength(2)]],
+      nomeCompleto: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(4)]],
-      passwordConfirm: ['', [Validators.required, Validators.minLength(4)]],
-      role: this.formBuilder.nonNullable.control<UserRole>('user', [Validators.required])
+      password: ['', [Validators.required]],
+      passwordConfirm: ['', [Validators.required]]
     },
     { validators: passwordMatchValidator }
   );
@@ -57,18 +56,18 @@ export class RegisterComponent {
     this.errorMessage.set('');
     this.isSubmitting.set(true);
 
-    const { username, password, role } = this.form.getRawValue();
+    const { nomeCompleto, email, password } = this.form.getRawValue();
 
     this.authService
-      .login({ username, password, role })
+      .register({ nomeCompleto, email, password })
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: (session) => {
-          const destination = session.role === 'admin' ? ['/admin/games'] : ['/games'];
+          const destination = session.roles.some((role) => role.toLowerCase() === 'admin') ? ['/admin/games'] : ['/games'];
           void this.router.navigate(destination);
         },
-        error: () => {
-          this.errorMessage.set('Nao foi possivel registar. Tente novamente.');
+        error: (err: any) => {
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Nao foi possivel registar. Tente novamente.');
         }
       });
   }

@@ -1,0 +1,140 @@
+:host {
+  display: block;
+}
+
+.page {
+  padding: 1.25rem 0;
+}
+
+.panel {
+  max-width: none;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 92px;
+  box-shadow: var(--shadow-lg);
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 0.75rem;
+}
+
+h1 {
+  margin: 0 0 0.15rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.subtitle a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+
+table {
+  width: 100%;
+  background: var(--surface);
+}
+
+th,
+td {
+  padding: 0.5rem 0.55rem;
+  font-size: 0.88rem;
+}
+
+th {
+  background: var(--surface-alt);
+}
+
+a {
+  color: var(--link);
+  font-weight: 600;
+  text-underline-offset: 2px;
+  display: block;
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+.bet-code {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  margin-top: 1px;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.prize-col {
+  font-weight: 600;
+}
+
+.date-col {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.row-ganhou td {
+  background: rgb(33 59 40 / 25%);
+}
+
+.row-perdeu td {
+  opacity: 0.65;
+}
+
+:root[data-theme='light'] .row-ganhou td {
+  background: rgb(216 240 220 / 40%);
+}
+
+.cancel-btn {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  background: transparent;
+  color: var(--danger-text);
+  border-color: var(--danger-text);
+  white-space: nowrap;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+
+.cancel-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--error-text);
+}
+
+.success {
+  color: var(--success-text);
+}
+
+.empty {
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}

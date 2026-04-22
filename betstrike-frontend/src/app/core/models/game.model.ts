@@ -1,4 +1,4 @@
-export type GameStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED';
+export type GameStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED';
 export type MatchState = 1 | 2 | 3 | 4 | 5;
 export type BetMarket = '1' | 'X' | '2';
 
@@ -12,27 +12,26 @@ export interface Game {
   status: GameStatus;
   homeScore: number;
   awayScore: number;
+  estado: number;
+}
+
+export interface GameOdds {
+  Odd1: number;
+  OddX: number;
+  Odd2: number;
 }
 
 export interface GameDetails extends Game {
   venue?: string;
   events: ReadonlyArray<string>;
-}
-
-export interface BettingGame {
-  dataDoJogo: string;
-  horaDeInicio: string;
-  equipaCasa: string;
-  equipaFora: string;
-  golosCasa: number;
-  golosFora: number;
-  estadoDoJogo: MatchState;
+  odds?: GameOdds;
 }
 
 export interface GameFilters {
   date?: string;
   status?: GameStatus;
   competition?: string;
+  estado?: number;
 }
 
 export interface CreateGameRequest {
@@ -44,15 +43,17 @@ export interface CreateGameRequest {
 }
 
 export interface UpdateGameRequest {
-  status: GameStatus;
-  homeScore: number;
-  awayScore: number;
+  status?: GameStatus;
+  homeScore?: number;
+  awayScore?: number;
 }
 
 export const GAME_STATUS_LABEL: Record<GameStatus, string> = {
   SCHEDULED: 'Agendado',
-  LIVE: 'Em curso',
-  FINISHED: 'Finalizado'
+  LIVE: 'Em Curso',
+  FINISHED: 'Finalizado',
+  CANCELLED: 'Cancelado',
+  POSTPONED: 'Adiado'
 };
 
 export const GAME_STATE_LABEL: Record<MatchState, string> = {
@@ -64,18 +65,32 @@ export const GAME_STATE_LABEL: Record<MatchState, string> = {
 };
 
 export const BET_MARKET_LABEL: Record<BetMarket, string> = {
-  '1': 'Vitória da equipa da casa',
+  '1': 'Vitória — casa',
   X: 'Empate',
-  '2': 'Vitória da equipa visitante'
+  '2': 'Vitória — fora'
 };
 
-export const DEFAULT_BETTING_GAME: BettingGame = {
-  dataDoJogo: '2026-04-21',
-  horaDeInicio: '20:15',
-  equipaCasa: 'Sporting CP',
-  equipaFora: 'SL Benfica',
-  golosCasa: 0,
-  golosFora: 0,
-  estadoDoJogo: 1
-};
+export function estadoToGameStatus(estado: number): GameStatus {
+  switch (estado) {
+    case 2: return 'LIVE';
+    case 3: return 'FINISHED';
+    case 4: return 'CANCELLED';
+    case 5: return 'POSTPONED';
+    default: return 'SCHEDULED';
+  }
+}
 
+export function estadoLabel(estado: number): string {
+  return (GAME_STATE_LABEL as Record<number, string>)[estado] ?? 'Desconhecido';
+}
+
+export function estadoClass(estado: number): string {
+  switch (estado) {
+    case 1: return 'agendado';
+    case 2: return 'em-curso';
+    case 3: return 'finalizado';
+    case 4: return 'cancelado';
+    case 5: return 'adiado';
+    default: return 'outro';
+  }
+}

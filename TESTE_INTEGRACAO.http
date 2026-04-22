@@ -1,0 +1,194 @@
+﻿/**
+ * Exemplo de dados para teste da integração
+ * Executar os seguintes comandos no resto client ou Postman
+ */
+
+// 1. CRIAR JOGO 1
+POST http://localhost:5141/api/jogos
+Content-Type: application/json
+
+{
+  "codigoJogo": "FUT-2026-0101",
+  "dataHoraInicio": "2026-04-21T15:30:00",
+  "equipaCasa": "Sporting CP",
+  "equipaFora": "SL Benfica",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1
+}
+
+### RESPOSTA ESPERADA
+201 Created
+{
+  "id": 1,
+  "codigoJogo": "FUT-2026-0101"
+}
+
+---
+
+// 2. CRIAR JOGO 2
+POST http://localhost:5141/api/jogos
+Content-Type: application/json
+
+{
+  "codigoJogo": "FUT-2026-0102",
+  "dataHoraInicio": "2026-04-21T18:00:00",
+  "equipaCasa": "FC Porto",
+  "equipaFora": "CD Nacional",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1
+}
+
+---
+
+// 3. CRIAR JOGO 3
+POST http://localhost:5141/api/jogos
+Content-Type: application/json
+
+{
+  "codigoJogo": "FUT-2026-0103",
+  "dataHoraInicio": "2026-04-21T20:30:00",
+  "equipaCasa": "Braga",
+  "equipaFora": "Guimaraes",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1
+}
+
+---
+
+// 4. LISTAR TODOS OS JOGOS
+GET http://localhost:5141/api/jogos
+
+### RESPOSTA ESPERADA
+200 OK
+[
+  {
+    "id": 1,
+    "codigoJogo": "FUT-2026-0101",
+    "dataHoraInicio": "2026-04-21T15:30:00",
+    "equipaCasa": "Sporting CP",
+    "equipaFora": "SL Benfica",
+    "tipoCompeticao": "Liga Portugal",
+    "estadoAtual": 1,
+    "golosCasa": 0,
+    "golosVisitante": 0,
+    "resultado": "0",
+    "dataHoraAtualizacaoResultado": null
+  },
+  ...
+]
+
+---
+
+// 5. OBTER DETALHES DE UM JOGO
+GET http://localhost:5141/api/jogos/FUT-2026-0101
+
+### RESPOSTA ESPERADA
+200 OK
+{
+  "id": 1,
+  "codigoJogo": "FUT-2026-0101",
+  "dataHoraInicio": "2026-04-21T15:30:00",
+  "equipaCasa": "Sporting CP",
+  "equipaFora": "SL Benfica",
+  "tipoCompeticao": "Liga Portugal",
+  "estadoAtual": 1,
+  "resultadoAtual": {
+    "golosCasa": 0,
+    "golosVisitante": 0,
+    "resultado": "0",
+    "dataHoraAtualizacao": "0001-01-01T00:00:00"
+  }
+}
+
+---
+
+// 6. ATUALIZAR JOGO PARA "EM CURSO"
+PATCH http://localhost:5141/api/jogos/FUT-2026-0101
+Content-Type: application/json
+
+{
+  "estadoAtual": 2
+}
+
+---
+
+// 7. ATUALIZAR MARCADOR
+PATCH http://localhost:5141/api/jogos/FUT-2026-0101
+Content-Type: application/json
+
+{
+  "estadoAtual": 2,
+  "golosCasa": 1,
+  "golosVisitante": 0
+}
+
+---
+
+// 8. ATUALIZAR PARA FINALIZADO
+PATCH http://localhost:5141/api/jogos/FUT-2026-0101
+Content-Type: application/json
+
+{
+  "estadoAtual": 3,
+  "golosCasa": 2,
+  "golosVisitante": 1
+}
+
+---
+
+// 9. LISTAR COM FILTRO DE DATA
+GET http://localhost:5141/api/jogos?dataInicio=2026-04-21&dataFim=2026-04-21
+
+---
+
+// 10. LISTAR COM FILTRO DE ESTADO (Em Curso)
+GET http://localhost:5141/api/jogos?estado=2
+
+---
+
+// 11. REMOVER JOGO
+DELETE http://localhost:5141/api/jogos/FUT-2026-0103
+
+### RESPOSTA ESPERADA
+204 No Content
+
+---
+
+## TESTES NO FRONTEND
+
+### URLs de Teste
+
+1. **Lista de Jogos**
+   ```
+   http://localhost:4200/games
+   ```
+
+2. **Detalhes de um Jogo**
+   ```
+   http://localhost:4200/games/1
+   ```
+
+3. **Apostar num Jogo**
+   ```
+   http://localhost:4200/games/1/bet
+   ```
+
+### Estados para Filtro
+
+| Código | Estado      |
+|--------|-------------|
+| 1      | Agendado    |
+| 2      | Em Curso    |
+| 3      | Finalizado  |
+| 4      | Cancelado   |
+| 5      | Adiado      |
+
+### Simulação de Jogo
+
+1. Criar jogo com estado 1 (Agendado)
+2. Atualizar para estado 2 (Em Curso)
+3. Incrementar marcador progressivamente (a cada 10s)
+4. Atualizar para estado 3 (Finalizado)
+
+Cada mudança de estado/marcador deve refletir no frontend em tempo real!
+

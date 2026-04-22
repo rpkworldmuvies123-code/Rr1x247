@@ -20,13 +20,8 @@
       </div>
 
       <div>
-        <label for="competition">Competicao</label>
-        <input id="competition" type="text" formControlName="competition" placeholder="Liga Portugal" />
-      </div>
-
-      <div>
-        <label for="status">Estado</label>
-        <select id="status" formControlName="status">
+        <label for="estado">Estado</label>
+        <select id="estado" formControlName="estado">
           @for (option of statusOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
@@ -53,9 +48,9 @@
           <caption class="sr-only">Lista de jogos da jornada</caption>
           <thead>
             <tr>
-              <th scope="col">Codigo</th>
+              <th scope="col">Código</th>
               <th scope="col">Jogo</th>
-              <th scope="col">Competicao</th>
+              <th scope="col">Competição</th>
               <th scope="col">Data</th>
               <th scope="col">Estado</th>
               <th scope="col">Marcador</th>
@@ -69,14 +64,18 @@
                 <td>{{ game.code }}</td>
                 <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
                 <td>{{ game.competition }}</td>
-                <td>{{ game.startTime | date: 'short' }}</td>
-                <td>{{ statusLabel(game.status) }}</td>
-                <td>{{ game.homeScore }} - {{ game.awayScore }}</td>
+                <td>{{ game.startTime | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
-                  <a [routerLink]="['/games', game.id]">Ver</a>
+                  <span class="badge badge-{{ estadoClass(game.estado) }}">{{ estadoLabel(game.estado) }}</span>
                 </td>
+                <td class="score-cell">{{ game.homeScore }} – {{ game.awayScore }}</td>
+                <td><a [routerLink]="['/games', game.id]">Ver</a></td>
                 <td>
-                  <a [routerLink]="['/games', game.id, 'bet']">Apostar</a>
+                  @if (canBet(game)) {
+                    <a class="bet-link" [routerLink]="['/games', game.id, 'bet']">Apostar</a>
+                  } @else {
+                    <span class="no-bet">—</span>
+                  }
                 </td>
               </tr>
             }
@@ -90,4 +89,3 @@
     }
   </section>
 </main>
-

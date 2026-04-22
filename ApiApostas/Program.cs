@@ -50,11 +50,25 @@ builder.Services.AddAuthentication(options =>
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<DatabaseService>();
+builder.Services.AddScoped<ApiApostas.Controllers.JogosController>();
 builder.Services.AddHostedService<SincronizacaoService>();
+
+// PagamentosClient — typed HttpClient com InternalKey injectado no header
+builder.Services.AddHttpClient<PagamentosClient>((sp, client) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = config["ApiPagamentos:BaseUrl"]
+                  ?? throw new InvalidOperationException("ApiPagamentos:BaseUrl não configurado.");
+    var key = config["ApiPagamentos:InternalKey"]
+              ?? throw new InvalidOperationException("ApiPagamentos:InternalKey não configurado.");
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.DefaultRequestHeaders.Add("X-Internal-Key", key);
+});
 
 var app = builder.Build();
 

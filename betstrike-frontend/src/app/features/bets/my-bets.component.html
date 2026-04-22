@@ -1,0 +1,76 @@
+<main class="page" aria-labelledby="my-bets-title">
+  <section class="panel">
+    <div class="header-row">
+      <div>
+        <h1 id="my-bets-title">Minhas apostas</h1>
+        <p class="subtitle"><a [routerLink]="['/games']">&larr; Ver jogos</a></p>
+      </div>
+      <button type="button" (click)="refresh()" [disabled]="isLoading()">Atualizar</button>
+    </div>
+
+    @if (isLoading()) {
+      <p role="status" aria-live="polite">A carregar apostas...</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (feedbackMessage()) {
+      <p class="success" role="status">{{ feedbackMessage() }}</p>
+    }
+
+    @if (!isLoading() && hasBets()) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jogo</th>
+              <th>Mercado</th>
+              <th>Montante</th>
+              <th>Odd</th>
+              <th>Prémio</th>
+              <th>Estado</th>
+              <th>Registo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bet of bets(); track bet.id) {
+              <tr [class.row-ganhou]="bet.estado === 2" [class.row-perdeu]="bet.estado === 3">
+                <td class="mono">#{{ bet.id }}</td>
+                <td>
+                  <a [routerLink]="['/games', bet.codigoJogo]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
+                  <span class="bet-code">{{ bet.codigoJogo }}</span>
+                </td>
+                <td><strong>{{ bet.tipoAposta }}</strong></td>
+                <td class="mono">{{ bet.montanteApostado | number:'1.2-2' }} €</td>
+                <td class="mono">× {{ bet.oddMomento | number:'1.2-2' }}</td>
+                <td class="mono prize-col">{{ bet.premioPotencial | number:'1.2-2' }} €</td>
+                <td>
+                  <span class="badge badge-{{ betEstadoClass(bet.estado) }}">{{ estadoLabel(bet.estado) }}</span>
+                </td>
+                <td class="date-col">{{ bet.dataHoraRegisto | date:'dd/MM/yy HH:mm' }}</td>
+                <td>
+                  @if (canCancel(bet)) {
+                    <button
+                      type="button"
+                      class="cancel-btn"
+                      (click)="cancelBet(bet)"
+                      [disabled]="cancelingBetId() === bet.id"
+                    >
+                      @if (cancelingBetId() === bet.id) { A cancelar... } @else { Cancelar }
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (!isLoading()) {
+      <p class="empty">Sem apostas registadas.</p>
+    }
+  </section>
+</main>

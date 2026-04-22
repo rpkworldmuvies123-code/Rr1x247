@@ -11,7 +11,7 @@ namespace ApiApostas.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     JwtService jwtService,
-    DatabaseService db) : ControllerBase
+    PagamentosClient pagamentos) : ControllerBase
 {
     public record RegistarRequest(string Email, string Password, string NomeCompleto);
     public record LoginRequest(string Email, string Password);
@@ -36,9 +36,10 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, "User");
 
+        // Criar saldo inicial (50 EUR) via ApiPagamentos
         try
         {
-            await db.CriarSaldoUtilizadorAsync(user.Id);
+            await pagamentos.CriarSaldoUtilizadorAsync(user.Id);
         }
         catch
         {

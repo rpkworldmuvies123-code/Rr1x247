@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using ApiApostas.Controllers;
 using ApiApostas.Models;
 
 namespace ApiApostas.Services;
@@ -45,6 +46,8 @@ public class SincronizacaoService(
             j => (string)j["CodigoJogo"]!,
             j => j);
 
+        var jogosController = scope.ServiceProvider.GetRequiredService<JogosController>();
+
         foreach (var remoto in remotos)
         {
             try
@@ -76,6 +79,9 @@ public class SincronizacaoService(
                 int? novoGv = marcadorMudou ? remoto.GolosVisitante : null;
 
                 await db.AtualizarJogoAsync(remoto.CodigoJogo, novoEstado, novoGc, novoGv);
+
+                // Processar pagamentos pendentes gerados pela transição de estado
+                await jogosController.ProcessarPagamentosPendentesAsync(remoto.CodigoJogo);
 
                 logger.LogInformation(
                     "Jogo atualizado: {CodigoJogo} estado={Estado} marcador={GC}-{GV}",
