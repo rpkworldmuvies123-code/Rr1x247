@@ -1,6 +1,7 @@
 using ApiResultados.Contracts;
 using ApiResultados.Data;
 using ApiResultados.Models;
+using ApiResultados.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ namespace ApiResultados.Controllers;
 [ApiController]
 [Route("api/jogos")]
 [Produces("application/json")]
-public sealed class JogosController(ResultadosDbContext dbContext) : ControllerBase
+public sealed class JogosController(ResultadosDbContext dbContext, KafkaProducerService kafka) : ControllerBase
 {
     /// <summary>
     /// Cria um novo jogo.
@@ -57,6 +58,8 @@ public sealed class JogosController(ResultadosDbContext dbContext) : ControllerB
 
         dbContext.Jogos.Add(jogo);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        kafka.PublicarJogoEvento("game-created", jogo);
 
         return CreatedAtAction(nameof(ObterPorCodigo), new { codigoJogo = jogo.CodigoJogo }, new CriarJogoResponse
         {
@@ -161,6 +164,9 @@ public sealed class JogosController(ResultadosDbContext dbContext) : ControllerB
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        kafka.PublicarJogoEvento("game-updated", jogo);
+
         return Ok(MapDetalhe(jogo));
     }
 

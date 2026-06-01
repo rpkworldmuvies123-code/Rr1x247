@@ -71,10 +71,12 @@ public class JogosController(DatabaseService db, PagamentosClient pagamentos, IL
         return NoContent();
     }
 
-    // ── Chamado também pela SincronizacaoService ──────────────────
+    public record ApostaResolvida(int ApostaId, string UtilizadorId, string TipoAposta, decimal Montante, decimal Odd, int Estado);
 
-    public async Task ProcessarPagamentosPendentesAsync(string codigoJogo)
+    public async Task<List<ApostaResolvida>> ProcessarPagamentosPendentesAsync(string codigoJogo)
     {
+        var resolvidas = new List<ApostaResolvida>();
+
         List<System.Collections.Generic.Dictionary<string, object?>> pendentes;
         try
         {
@@ -83,7 +85,7 @@ public class JogosController(DatabaseService db, PagamentosClient pagamentos, IL
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Falha ao obter pagamentos pendentes para {CodigoJogo}", codigoJogo);
-            return;
+            return resolvidas;
         }
 
         foreach (var bet in pendentes)
@@ -93,20 +95,23 @@ public class JogosController(DatabaseService db, PagamentosClient pagamentos, IL
             var estado = Convert.ToInt32(bet["Estado"]);
             var montante = Convert.ToDecimal(bet["MontanteApostado"]);
             var odd = Convert.ToDecimal(bet["OddMomento"]);
+            var tipoAposta = (string)(bet.TryGetValue("TipoAposta", out var t) ? t : null) ?? "";
 
             try
             {
-                if (estado == 2) // Ganha — pagar prémio
+                if (estado == 2)
                 {
                     var premio = Math.Round(montante * odd, 2);
                     await pagamentos.CreditarApostaAsync(utilizadorId, premio, "PG", apostaId);
                 }
-                else if (estado == 4) // Anulada — reembolsar montante
+                else if (estado == 4)
                 {
                     await pagamentos.CreditarApostaAsync(utilizadorId, montante, "RE", apostaId);
                 }
 
                 await db.MarcarPagamentoProcessadoAsync(apostaId);
+                resolvidas.Add(new ApostaResolvida(apostaId, utilizadorId, tipoAposta, montante, odd, estado));
+
                 logger.LogInformation(
                     "Pagamento processado: aposta {ApostaId} estado={Estado} utilizador={Uid}",
                     apostaId, estado, utilizadorId);
@@ -116,8 +121,9 @@ public class JogosController(DatabaseService db, PagamentosClient pagamentos, IL
                 logger.LogError(ex,
                     "Falha ao processar pagamento da aposta {ApostaId} — será reprocessado",
                     apostaId);
-                // PagamentoPendente mantém-se 1; será reprocessado no próximo ciclo
             }
         }
+
+        return resolvidas;
     }
 }

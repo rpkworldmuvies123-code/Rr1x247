@@ -8,7 +8,7 @@ namespace ApiApostas.Controllers;
 [ApiController]
 [Route("api/apostas")]
 [Authorize]
-public class ApostasController(DatabaseService db, PagamentosClient pagamentos) : ControllerBase
+public class ApostasController(DatabaseService db, PagamentosClient pagamentos, KafkaProducerService kafka) : ControllerBase
 {
     public record CriarApostaRequest(string CodigoJogo, string TipoAposta, decimal MontanteApostado);
 
@@ -53,6 +53,8 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos) 
             throw new DomainException("Saldo insuficiente ou falha no processamento do pagamento.", 422);
         }
 
+        kafka.Publicar("bet-placed", req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado, odd, 1, apostaId);
+
         return Created($"/api/apostas/{apostaId}", new { id = apostaId, oddMomento = odd });
     }
 
@@ -78,6 +80,11 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos) 
             // Não falha o cancelamento — a aposta está cancelada na DB
             _ = ex;
         }
+
+        var codigoJogo = (string)aposta["CodigoJogo"]!;
+        var tipoAposta = (string)aposta["TipoAposta"]!;
+        var odd = Convert.ToDecimal(aposta["OddMomento"]);
+        kafka.Publicar("bet-cancelled", codigoJogo, utilizadorId, tipoAposta, montante, odd, 4, id);
 
         return NoContent();
     }

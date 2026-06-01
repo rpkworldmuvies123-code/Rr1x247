@@ -56,7 +56,18 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<DatabaseService>();
 builder.Services.AddScoped<ApiApostas.Controllers.JogosController>();
-builder.Services.AddHostedService<SincronizacaoService>();
+
+builder.Services.AddSingleton<KafkaProducerService>();
+
+// RabbitMQ — singleton criado de forma assíncrona antes de arrancar o host
+builder.Services.AddSingleton(sp =>
+    RabbitMqService.CreateAsync(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<ILogger<RabbitMqService>>()).GetAwaiter().GetResult());
+
+builder.Services.AddHostedService<KafkaConsumerService>();
+builder.Services.AddHostedService<BetResolutionWorker>();
+// SincronizacaoService (polling HTTP) substituído pelo KafkaConsumerService
 
 // PagamentosClient — typed HttpClient com InternalKey injectado no header
 builder.Services.AddHttpClient<PagamentosClient>((sp, client) =>

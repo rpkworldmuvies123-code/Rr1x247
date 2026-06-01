@@ -1,5 +1,6 @@
 using ApiResultados.Data;
 using ApiResultados.Security;
+using ApiResultados.Services;
 using DotNetEnv;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ builder.Services.AddDbContext<ResultadosDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddHostedService<SchemaValidationHostedService>();
 builder.Services.AddSingleton(new ApiKeySettings { Value = apiKey });
+builder.Services.AddSingleton<KafkaProducerService>();
 
 var app = builder.Build();
 
