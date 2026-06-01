@@ -41,6 +41,55 @@
         condition: service_healthy
     restart: "no"
 
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    networks:
+      - env_net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-betstrike}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-betstrike123}"
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    networks:
+      - env_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
   geradordados:
     image: geradordados-web
     build:
@@ -59,6 +108,8 @@
     depends_on:
       apiresultados:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   apiresultados:
     image: apiresultados
@@ -73,6 +124,7 @@
       RESULTADOS_DB_PASSWORD: "${RESULTADOS_DB_PASSWORD}"
       RESULTADOS_API_KEY: "${RESULTADOS_API_KEY}"
       ASPNETCORE_ENVIRONMENT: "Development"
+      Kafka__BootstrapServers: "kafka:9092"
     ports:
       - "${APIRESULTADOS_PORT:-5204}:8080"
     networks:
@@ -105,6 +157,10 @@
       ApiPagamentos__BaseUrl: "http://apipagamentos:8080"
       ApiPagamentos__InternalKey: "${PAGAMENTOS_INTERNAL_KEY}"
       Sincronizacao__IntervaloSegundos: "${APOSTAS_SYNC_INTERVALO:-5}"
+      Kafka__BootstrapServers: "kafka:9092"
+      RabbitMQ__Host: "rabbitmq"
+      RabbitMQ__User: "${RABBITMQ_USER:-betstrike}"
+      RabbitMQ__Password: "${RABBITMQ_PASSWORD:-betstrike123}"
     ports:
       - "${APIAPOSTAS_PORT:-5141}:8080"
     networks:
@@ -121,6 +177,10 @@
       apiresultados:
         condition: service_healthy
       apipagamentos:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   apipagamentos:
