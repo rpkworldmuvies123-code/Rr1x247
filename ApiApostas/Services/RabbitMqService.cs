@@ -62,7 +62,8 @@ public sealed class RabbitMqService : IAsyncDisposable
 
     public async Task PublicarResolucaoApostasAsync(string codigoJogo, int estadoJogo)
     {
-        var payload = JsonSerializer.Serialize(new { codigoJogo, estadoJogo });
+        var eventId = Guid.NewGuid();
+        var payload = JsonSerializer.Serialize(new { eventId, codigoJogo, estadoJogo });
         var body = Encoding.UTF8.GetBytes(payload);
 
         var props = new BasicProperties { Persistent = true };

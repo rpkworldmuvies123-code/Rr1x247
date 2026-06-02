@@ -25,6 +25,10 @@ builder.Services.AddHostedService<SchemaValidationHostedService>();
 builder.Services.AddSingleton(new ApiKeySettings { Value = apiKey });
 builder.Services.AddSingleton<KafkaProducerService>();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<ApiResultados.SqlServerHealthCheck>("sqlserver", tags: ["db"])
+    .AddCheck<ApiResultados.KafkaHealthCheck>("kafka", tags: ["messaging"]);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -53,6 +57,33 @@ app.UseMiddleware<ApiKeyAuditMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// /health/ready — checks ricos de dependências (SQL + Kafka)
+// /health e /health/stats são geridos pelo HealthController existente
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = WriteHealthJson
+});
+
+static async Task WriteHealthJson(HttpContext ctx, Microsoft.Extensions.Diagnostics.HealthChecks.HealthReport report)
+{
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsJsonAsync(new
+    {
+        status   = report.Status.ToString(),
+        duration = report.TotalDuration.TotalMilliseconds,
+        checks   = report.Entries.ToDictionary(
+            e => e.Key,
+            e => (object)new
+            {
+                status      = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration    = e.Value.Duration.TotalMilliseconds,
+                data        = e.Value.Data,
+                error       = e.Value.Exception?.Message,
+            })
+    });
+}
 
 app.Run();
 

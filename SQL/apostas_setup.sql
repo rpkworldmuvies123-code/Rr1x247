@@ -733,6 +733,28 @@ END
 GO
 
 -- ================================================================
+-- TABELA: EventosProcessados (idempotência de mensagens RabbitMQ)
+-- ================================================================
+BEGIN TRY
+    BEGIN TRAN;
+    IF OBJECT_ID(N'dbo.EventosProcessados', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.EventosProcessados (
+            EventId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT pk_eventos_processados PRIMARY KEY,
+            CodigoJogo    VARCHAR(20)      NOT NULL,
+            ProcessadoEm  DATETIME2        NOT NULL CONSTRAINT df_eventos_processados_data DEFAULT (SYSUTCDATETIME())
+        );
+        PRINT 'Tabela EventosProcessados criada.';
+    END
+    COMMIT TRAN;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+    PRINT 'Erro ao criar tabela EventosProcessados: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+-- ================================================================
 -- TABELA: LogAdmin (auditoria de acoes administrativas)
 -- ================================================================
 BEGIN TRY

@@ -175,6 +175,27 @@ public class DatabaseService(IConfiguration configuration)
         catch (SqlException ex) { MapSqlError(ex); }
     }
 
+    // Tenta registar um EventId como processado.
+    // Devolve true se foi inserido agora (primeira vez), false se já existia (duplicado).
+    public async Task<bool> TentarRegistarEventoAsync(Guid eventId, string codigoJogo)
+    {
+        await using var con = CreateConnection();
+        await con.OpenAsync();
+        await using var cmd = new SqlCommand(
+            "INSERT INTO dbo.EventosProcessados (EventId, CodigoJogo) VALUES (@EventId, @CodigoJogo)", con);
+        cmd.Parameters.AddWithValue("@EventId", eventId);
+        cmd.Parameters.AddWithValue("@CodigoJogo", codigoJogo);
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return true;  // inseriu — primeira vez
+        }
+        catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
+        {
+            return false; // violação de PK — já processado
+        }
+    }
+
     public async Task<Dictionary<string, object?>> ConsultarOddsJogoAsync(string codigoJogo)
     {
         await using var con = CreateConnection();

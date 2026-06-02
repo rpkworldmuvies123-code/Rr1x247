@@ -16,7 +16,6 @@ public sealed class BetResolutionWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Prefetch 1: só busca a próxima mensagem depois de processar a atual
         await rabbit.Channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: stoppingToken);
 
         var consumer = new AsyncEventingBasicConsumer(rabbit.Channel);
@@ -29,7 +28,6 @@ public sealed class BetResolutionWorker(
             cancellationToken: stoppingToken);
 
         logger.LogInformation("BetResolutionWorker a escutar fila '{Queue}'", RabbitMqService.QueueBetResolution);
-
         await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
     }
 
@@ -47,6 +45,19 @@ public sealed class BetResolutionWorker(
             codigoJogo = msg.CodigoJogo;
 
             await using var scope = scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<DatabaseService>();
+
+            // ── Idempotência: verificar se este EventId já foi processado ──────────
+            var primeiraVez = await db.TentarRegistarEventoAsync(msg.EventId, codigoJogo);
+            if (!primeiraVez)
+            {
+                logger.LogWarning("[Idempotência] EventId {EventId} para {CodigoJogo} já processado — descartado",
+                    msg.EventId, codigoJogo);
+                await rabbit.Channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken: ct);
+                return;
+            }
+
+            // ── Processamento normal ──────────────────────────────────────────────
             var jogosController = scope.ServiceProvider.GetRequiredService<JogosController>();
             var apostasResolvidas = await jogosController.ProcessarPagamentosPendentesAsync(codigoJogo);
 
@@ -55,8 +66,8 @@ public sealed class BetResolutionWorker(
                     a.UtilizadorId, a.TipoAposta, a.Montante, a.Odd, a.Estado, a.ApostaId);
 
             await rabbit.Channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken: ct);
-
-            logger.LogInformation("[RabbitMQ] Apostas resolvidas para {CodigoJogo}", codigoJogo);
+            logger.LogInformation("[RabbitMQ] Apostas resolvidas para {CodigoJogo} (EventId={EventId})",
+                codigoJogo, msg.EventId);
         }
         catch (Exception ex)
         {
@@ -66,8 +77,6 @@ public sealed class BetResolutionWorker(
 
             if (retryCount < MaxRetries)
             {
-                // Publicar nova mensagem com contador incrementado, ack a original.
-                // BasicNack(requeue:true) não permite alterar headers — por isso re-publicamos manualmente.
                 var props = new BasicProperties();
                 props.Headers = new Dictionary<string, object?> { ["x-retry-count"] = (long)(retryCount + 1) };
                 props.DeliveryMode = DeliveryModes.Persistent;
@@ -82,7 +91,6 @@ public sealed class BetResolutionWorker(
             }
             else
             {
-                // Esgotou retries → DLQ via x-dead-letter
                 logger.LogWarning("[RabbitMQ] Mensagem enviada para DLQ: {CodigoJogo}", codigoJogo ?? "?");
                 await rabbit.Channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: ct);
             }
@@ -93,11 +101,10 @@ public sealed class BetResolutionWorker(
     {
         if (ea.BasicProperties.Headers is not null &&
             ea.BasicProperties.Headers.TryGetValue("x-retry-count", out var val))
-        {
             return Convert.ToInt32(val);
-        }
         return 0;
     }
 
-    private sealed record BetResolutionMessage(string CodigoJogo, int EstadoJogo);
+    // EventId incluído para idempotência; EstadoJogo para informação no log
+    private sealed record BetResolutionMessage(Guid EventId, string CodigoJogo, int EstadoJogo);
 }

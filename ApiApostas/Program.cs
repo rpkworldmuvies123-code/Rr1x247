@@ -68,6 +68,11 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddHostedService<KafkaConsumerService>();
 builder.Services.AddHostedService<BetResolutionWorker>();
 builder.Services.AddHostedService<PendingBetsSweeperService>();
+
+builder.Services.AddHealthChecks()
+    .AddCheck<ApiApostas.SqlServerHealthCheck>("sqlserver", tags: ["db"])
+    .AddCheck<ApiApostas.RabbitMqHealthCheck>("rabbitmq", tags: ["messaging"])
+    .AddCheck<ApiApostas.KafkaHealthCheck>("kafka", tags: ["messaging"]);
 // SincronizacaoService (polling HTTP) substituído pelo KafkaConsumerService
 
 // PagamentosClient — typed HttpClient com InternalKey injectado no header
@@ -104,6 +109,32 @@ app.MapScalarApiReference(opts => opts.WithTitle("BetStrike — API Apostas"));
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = WriteHealthJson
+});
+
+static async Task WriteHealthJson(HttpContext ctx, Microsoft.Extensions.Diagnostics.HealthChecks.HealthReport report)
+{
+    ctx.Response.ContentType = "application/json";
+    var result = new
+    {
+        status = report.Status.ToString(),
+        duration = report.TotalDuration.TotalMilliseconds,
+        checks = report.Entries.ToDictionary(
+            e => e.Key,
+            e => (object)new
+            {
+                status      = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration    = e.Value.Duration.TotalMilliseconds,
+                data        = e.Value.Data,
+                error       = e.Value.Exception?.Message,
+            })
+    };
+    await ctx.Response.WriteAsJsonAsync(result);
+}
 
 // Seed: roles + admin user (schema gerido por SQL/apostas_setup.sql)
 await using (var scope = app.Services.CreateAsyncScope())
