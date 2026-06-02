@@ -218,8 +218,14 @@
       Kafka__BootstrapServers: "kafka:9092"
       Alertas__LimiarExposicaoEuros: "${ANALYTICS_LIMIAR_EXPOSICAO:-500}"
       Alertas__LimiarApostasPorMinuto: "${ANALYTICS_LIMIAR_APOSTAS_PM:-50}"
+      Alertas__LimiarTaxaGanhoAlto: "${ANALYTICS_LIMIAR_TAXA_GANHO_ALTO:-0.70}"
+      Alertas__LimiarTaxaGanhoBaixo: "${ANALYTICS_LIMIAR_TAXA_GANHO_BAIXO:-0.10}"
+      Alertas__MinApostasParaPadrao: "${ANALYTICS_MIN_APOSTAS_PADRAO:-20}"
+      ANALYTICS_PERSIST_PATH: "/data/analytics-state.json"
     ports:
       - "${ANALYTICSSERVICE_PORT:-5400}:8080"
+    volumes:
+      - analytics_data:/data
     networks:
       - env_net
     healthcheck:
@@ -252,3 +258,4 @@ networks:
 
 volumes:
   mssqlsystem:
+  analytics_data:

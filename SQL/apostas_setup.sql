@@ -565,7 +565,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT
-        a.Id, a.JogoId, j.CodigoJogo, j.EquipaCasa, j.EquipaFora,
+        a.Id, a.JogoId, j.CodigoJogo, j.EquipaCasa, j.EquipaFora, j.TipoCompeticao,
         a.UtilizadorId, a.TipoAposta, a.MontanteApostado, a.OddMomento,
         a.Estado, a.DataHoraRegisto,
         CAST(a.MontanteApostado * a.OddMomento AS DECIMAL(10,2)) AS PremioPotencial
@@ -711,7 +711,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_ObterPagamentosPendentes
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT a.Id, a.UtilizadorId, a.MontanteApostado, a.OddMomento, a.Estado,
+    SELECT a.Id, j.CodigoJogo, a.UtilizadorId, a.TipoAposta, a.MontanteApostado, a.OddMomento, a.Estado,
            CAST(a.MontanteApostado * a.OddMomento AS DECIMAL(10,2)) AS PremioPotencial
     FROM dbo.Apostas a
     JOIN dbo.Jogos j ON j.Id = a.JogoId

@@ -4,5 +4,12 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/analytics": {
+    "target": "http://localhost:5400",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/analytics": "/api/analytics" },
+    "logLevel": "debug"
   }
 }

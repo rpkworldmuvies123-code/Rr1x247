@@ -1,0 +1,423 @@
+{
+  "info": {
+    "_postman_id": "betstrike-parte2-kafka-rabbitmq",
+    "name": "BetStrike — Parte 2 (Kafka + RabbitMQ + Analytics)",
+    "description": "Demonstração end-to-end da Parte 2. Correr em ordem com o Collection Runner. Stack deve estar UP (docker compose up).\n\nFluxo:\n1. Health checks\n2. Registar utilizador + login\n3. Criar jogo em ApiResultados → confirmar chegada em ApiApostas via Kafka\n4. Apostar + verificar Analytics\n5. Jogo EmCurso → Finalizado → verificar aposta Ganha e saldo atualizado (RabbitMQ)\n6. Fluxo cancelamento → aposta Anulada + reembolso",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "resultadosUrl", "value": "http://localhost:5204", "type": "string" },
+    { "key": "apostasUrl",    "value": "http://localhost:5141", "type": "string" },
+    { "key": "analyticsUrl",  "value": "http://localhost:5400", "type": "string" },
+    { "key": "apiKey",        "value": "Ra1MTLOcHOaJL8EXlAaKQ8PjGMrccSgr5w4yxg0c6QNRb1zP0WVAj81KcX6uQV0T", "type": "string" },
+    { "key": "token",         "value": "", "type": "string" },
+    { "key": "codigoJogo",    "value": "", "type": "string" },
+    { "key": "apostaId",      "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "1. Health Checks",
+      "item": [
+        {
+          "name": "ApiResultados UP",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('ApiResultados 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{resultadosUrl}}/health", "host": ["{{resultadosUrl}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "ApiApostas UP",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('ApiApostas 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{apostasUrl}}/api/jogos", "host": ["{{apostasUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+        {
+          "name": "AnalyticsService UP",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('AnalyticsService 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/resumo", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","resumo"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2. Auth",
+      "item": [
+        {
+          "name": "Registar utilizador",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 ou 400 (já existe)', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));",
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token', pm.response.json().token);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"parte2demo@betstrike.pt\",\n  \"password\": \"Demo123!\",\n  \"nomeCompleto\": \"Demo Parte 2\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{apostasUrl}}/api/auth/registar", "host": ["{{apostasUrl}}"], "path": ["api","auth","registar"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('token', pm.response.json().token);",
+            "pm.test('token recebido', () => pm.expect(pm.response.json().token).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"parte2demo@betstrike.pt\",\n  \"password\": \"Demo123!\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{apostasUrl}}/api/auth/login", "host": ["{{apostasUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Verificar saldo inicial (50 €)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('SaldoAtual >= 50', () => pm.expect(pm.response.json().SaldoAtual).to.be.at.least(50));",
+            "console.log('Saldo:', pm.response.json().SaldoAtual, '€');"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/pagamentos/saldo", "host": ["{{apostasUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3. Pipeline Kafka — Criar Jogo",
+      "item": [
+        {
+          "name": "ApiResultados → POST /api/jogos (publica game-events)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "var codigo = pm.response.json().codigoJogo;",
+            "pm.collectionVariables.set('codigoJogo', codigo);",
+            "pm.test('codigoJogo presente', () => pm.expect(codigo).to.be.a('string'));",
+            "console.log('Jogo criado:', codigo, '— aguardar ~2s para Kafka propagar para ApiApostas');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"FUT-2026-9950\",\n  \"equipaCasa\": \"Benfica\",\n  \"equipaFora\": \"Porto\",\n  \"tipoCompeticao\": \"Primeira Liga\",\n  \"dataHoraInicio\": \"2026-12-15T20:00:00Z\",\n  \"estadoAtual\": 1\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{resultadosUrl}}/api/jogos", "host": ["{{resultadosUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+        {
+          "name": "ApiApostas → confirmar jogo chegou via Kafka",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK — jogo propagado via Kafka', () => pm.response.to.have.status(200));",
+            "var j = pm.response.json();",
+            "pm.test('Estado = 1 (Agendado)', () => pm.expect(j.Estado).to.equal(1));",
+            "pm.test('EquipaCasa = Benfica', () => pm.expect(j.EquipaCasa).to.equal('Benfica'));",
+            "pm.test('EquipaFora = Porto', () => pm.expect(j.EquipaFora).to.equal('Porto'));",
+            "console.log('Kafka OK — jogo', j.CodigoJogo, 'Estado:', j.Estado, 'Odd1:', j.Odd1);"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/jogos/{{codigoJogo}}", "host": ["{{apostasUrl}}"], "path": ["api","jogos","{{codigoJogo}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4. Apostar + Analytics",
+      "item": [
+        {
+          "name": "Colocar aposta (€ 20 no 1)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('apostaId', j.id.toString());",
+            "pm.test('id presente', () => pm.expect(j.id).to.be.a('number'));",
+            "pm.test('oddMomento > 1', () => pm.expect(j.oddMomento).to.be.above(1));",
+            "console.log('Aposta id:', j.id, 'odd:', j.oddMomento, '— prémio potencial:', (20 * j.oddMomento).toFixed(2), '€');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"{{codigoJogo}}\",\n  \"tipoAposta\": \"1\",\n  \"montanteApostado\": 20\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{apostasUrl}}/api/apostas", "host": ["{{apostasUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+        {
+          "name": "Analytics — resumo global",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var r = pm.response.json();",
+            "pm.test('campo apostas presente', () => pm.expect(r).to.have.property('apostas'));",
+            "pm.test('campo exposicaoFinanceira presente', () => pm.expect(r).to.have.property('exposicaoFinanceira'));",
+            "console.log('Apostas/min:', r.apostas.ultimoMinuto, '| Utilizadores ativos:', r.utilizadoresAtivos5Min);",
+            "console.log('Exposicao:', JSON.stringify(r.exposicaoFinanceira));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/resumo", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","resumo"] }
+          }
+        },
+        {
+          "name": "Analytics — métricas do jogo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var r = pm.response.json();",
+            "pm.test('codigoJogo correto', () => pm.expect(r.codigoJogo).to.equal(pm.collectionVariables.get('codigoJogo')));",
+            "console.log('Jogo', r.codigoJogo, '| Volume apostado:', r.volumeApostado, '€ | Exposicao:', r.exposicaoFinanceira, '€');"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/jogos/{{codigoJogo}}", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","jogos","{{codigoJogo}}"] }
+          }
+        },
+        {
+          "name": "Analytics — alertas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "console.log('Alertas ativos:', pm.response.json().length);"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/alertas", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","alertas"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5. Pipeline RabbitMQ — Resolução de Apostas",
+      "item": [
+        {
+          "name": "ApiResultados → PATCH EmCurso (estado 2, 1-0)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('estadoAtual = 2', () => pm.expect(pm.response.json().estadoAtual).to.equal(2));",
+            "console.log('Jogo EmCurso. Marcador: 1-0');"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 2,\n  \"golosCasa\": 1,\n  \"golosVisitante\": 0\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{resultadosUrl}}/api/jogos/{{codigoJogo}}", "host": ["{{resultadosUrl}}"], "path": ["api","jogos","{{codigoJogo}}"] }
+          }
+        },
+        {
+          "name": "ApiResultados → PATCH Finalizado (estado 3) — dispara RabbitMQ",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('estadoAtual = 3', () => pm.expect(pm.response.json().estadoAtual).to.equal(3));",
+            "console.log('Jogo Finalizado (1-0). RabbitMQ bet-resolution publicado — BetResolutionWorker a processar...');"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 3\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{resultadosUrl}}/api/jogos/{{codigoJogo}}", "host": ["{{resultadosUrl}}"], "path": ["api","jogos","{{codigoJogo}}"] }
+          }
+        },
+        {
+          "name": "Verificar aposta Ganha (aguardar ~3s)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var apostas = pm.response.json();",
+            "var aposta = apostas.find(a => a.Id == pm.collectionVariables.get('apostaId'));",
+            "pm.test('aposta encontrada', () => pm.expect(aposta).to.not.be.undefined);",
+            "if (aposta) {",
+            "  pm.test('Estado = 2 (Ganha)', () => pm.expect(aposta.Estado).to.equal(2));",
+            "  console.log('Aposta id:', aposta.Id, '| Estado:', aposta.Estado, '(2=Ganha) | Premio potencial:', aposta.PremioPotencial, '€');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/apostas", "host": ["{{apostasUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+        {
+          "name": "Verificar saldo atualizado (prémio creditado via trigger SQL)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var saldo = pm.response.json().SaldoAtual;",
+            "pm.test('saldo > 50 (prémio recebido)', () => pm.expect(saldo).to.be.above(50));",
+            "console.log('Saldo atual:', saldo, '€  (saldo_inicial - montante + prémio = 50 - 20 + odd×20)');"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/pagamentos/saldo", "host": ["{{apostasUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "6. Cancelamento — Aposta Anulada + Reembolso",
+      "item": [
+        {
+          "name": "ApiResultados → criar jogo para cancelar",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('codigoJogoCancel', pm.response.json().codigoJogo);",
+            "console.log('Jogo criado:', pm.response.json().codigoJogo);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"FUT-2026-9951\",\n  \"equipaCasa\": \"Sporting\",\n  \"equipaFora\": \"Braga\",\n  \"tipoCompeticao\": \"Primeira Liga\",\n  \"dataHoraInicio\": \"2026-12-16T20:00:00Z\",\n  \"estadoAtual\": 1\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{resultadosUrl}}/api/jogos", "host": ["{{resultadosUrl}}"], "path": ["api","jogos"] }
+          }
+        },
+        {
+          "name": "Verificar saldo antes (para comparar depois)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('saldoAntesCancel', pm.response.json().SaldoAtual.toString());",
+            "console.log('Saldo antes de apostar:', pm.response.json().SaldoAtual, '€');"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/pagamentos/saldo", "host": ["{{apostasUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        },
+        {
+          "name": "Apostar no jogo que vai ser cancelado (€ 5)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('apostaIdCancel', pm.response.json().id.toString());",
+            "console.log('Aposta id:', pm.response.json().id, '— €5 debitados do saldo');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"codigoJogo\": \"FUT-2026-9951\",\n  \"tipoAposta\": \"X\",\n  \"montanteApostado\": 5\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{apostasUrl}}/api/apostas", "host": ["{{apostasUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+        {
+          "name": "ApiResultados → PATCH Cancelado (estado 4) — dispara RabbitMQ",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('estadoAtual = 4', () => pm.expect(pm.response.json().estadoAtual).to.equal(4));",
+            "console.log('Jogo cancelado. Apostas pendentes serao anuladas e reembolsadas via RabbitMQ + trigger SQL.');"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"estadoAtual\": 4\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{resultadosUrl}}/api/jogos/FUT-2026-9951", "host": ["{{resultadosUrl}}"], "path": ["api","jogos","FUT-2026-9951"] }
+          }
+        },
+        {
+          "name": "Verificar aposta Anulada (aguardar ~3s)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var apostas = pm.response.json();",
+            "var aposta = apostas.find(a => a.Id == pm.collectionVariables.get('apostaIdCancel'));",
+            "pm.test('aposta encontrada', () => pm.expect(aposta).to.not.be.undefined);",
+            "if (aposta) {",
+            "  pm.test('Estado = 4 (Anulada)', () => pm.expect(aposta.Estado).to.equal(4));",
+            "  console.log('Aposta id:', aposta.Id, '| Estado:', aposta.Estado, '(4=Anulada — reembolso emitido)');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/apostas", "host": ["{{apostasUrl}}"], "path": ["api","apostas"] }
+          }
+        },
+        {
+          "name": "Verificar saldo reembolsado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var saldoAtual = pm.response.json().SaldoAtual;",
+            "var saldoAntes = parseFloat(pm.collectionVariables.get('saldoAntesCancel'));",
+            "pm.test('saldo restaurado (reembolso de 5€)', () => pm.expect(saldoAtual).to.be.closeTo(saldoAntes, 0.01));",
+            "console.log('Saldo antes de apostar:', saldoAntes, '€ | Saldo atual:', saldoAtual, '€ | Reembolso recebido:', (saldoAtual - saldoAntes + 5).toFixed(2), '€');"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{apostasUrl}}/api/pagamentos/saldo", "host": ["{{apostasUrl}}"], "path": ["api","pagamentos","saldo"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "7. Analytics — Resumo Final",
+      "item": [
+        {
+          "name": "Resumo global acumulado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var r = pm.response.json();",
+            "var tv = r.taxasVitoria;",
+            "console.log('=== ANALYTICS FINAL ===');",
+            "console.log('Apostas/min:', r.apostas.ultimoMinuto, '| Apostas/5min:', r.apostas.ultimos5Minutos);",
+            "console.log('Utilizadores ativos:', r.utilizadoresAtivos5Min);",
+            "console.log('Taxas vitoria — 1:', tv.ganhou1, ' X:', tv.ganhouX, ' 2:', tv.ganhou2, ' Total:', tv.total);",
+            "console.log('Volume por competicao:', JSON.stringify(r.volumePorCompeticao));",
+            "console.log('Exposicao por jogo:', JSON.stringify(r.exposicaoFinanceira));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/resumo", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","resumo"] }
+          }
+        },
+        {
+          "name": "Alertas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "var alertas = pm.response.json();",
+            "console.log('Total alertas:', alertas.length);",
+            "alertas.forEach(a => console.log('[' + a.timestamp + ']', a.tipo, '-', a.mensagem));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{analyticsUrl}}/api/analytics/alertas", "host": ["{{analyticsUrl}}"], "path": ["api","analytics","alertas"] }
+          }
+        }
+      ]
+    }
+
+  ]
+}

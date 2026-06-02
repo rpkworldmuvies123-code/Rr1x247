@@ -38,6 +38,10 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos, 
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] CriarApostaRequest req)
     {
+        // Obter TipoCompeticao do jogo para enriquecer o evento Kafka
+        var jogo = await db.ConsultarJogoAsync(req.CodigoJogo);
+        var competicao = jogo.TryGetValue("TipoCompeticao", out var tc) ? (tc as string ?? "") : "";
+
         // 1. Inserir aposta (valida jogo, tipo, montante; devolve a odd aplicada)
         var (apostaId, odd) = await db.InserirApostaAsync(
             req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado);
@@ -53,7 +57,7 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos, 
             throw new DomainException("Saldo insuficiente ou falha no processamento do pagamento.", 422);
         }
 
-        kafka.Publicar("bet-placed", req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado, odd, 1, apostaId);
+        kafka.Publicar("bet-placed", req.CodigoJogo, UserId, req.TipoAposta, req.MontanteApostado, odd, 1, apostaId, competicao);
 
         return Created($"/api/apostas/{apostaId}", new { id = apostaId, oddMomento = odd });
     }
@@ -68,6 +72,7 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos, 
         var aposta = await db.ConsultarApostaAsync(id, null, isAdmin: true);
         var montante = Convert.ToDecimal(aposta["MontanteApostado"]);
         var utilizadorId = (string)aposta["UtilizadorId"]!;
+        var competicao = aposta.TryGetValue("TipoCompeticao", out var tc) ? (tc as string ?? "") : "";
 
         try
         {
@@ -77,14 +82,13 @@ public class ApostasController(DatabaseService db, PagamentosClient pagamentos, 
         catch (Exception ex)
         {
             // PagamentoPendente permanece 1 para retry posterior
-            // Não falha o cancelamento — a aposta está cancelada na DB
             _ = ex;
         }
 
         var codigoJogo = (string)aposta["CodigoJogo"]!;
         var tipoAposta = (string)aposta["TipoAposta"]!;
         var odd = Convert.ToDecimal(aposta["OddMomento"]);
-        kafka.Publicar("bet-cancelled", codigoJogo, utilizadorId, tipoAposta, montante, odd, 4, id);
+        kafka.Publicar("bet-cancelled", codigoJogo, utilizadorId, tipoAposta, montante, odd, 4, id, competicao);
 
         return NoContent();
     }

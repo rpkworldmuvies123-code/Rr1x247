@@ -70,8 +70,8 @@ public sealed class KafkaAnalyticsConsumer(
         var codigoJogo = GetString(doc, "codigoJogo")!;
         var estado = GetInt(doc, "estado");
 
-        if (tipo == "game-updated" && estado is 3 or 4 or 5)
-            store.LimparExposicaoJogo(codigoJogo);
+        // Exposição não é apagada aqui — é reduzida naturalmente pelos bet-resolved/bet-cancelled
+        // que chegam no tópico bet-events. Apagar prematuramente esvaziava a tabela no dashboard.
     }
 
     private void ProcessarBetEvent(string payload)
@@ -101,7 +101,8 @@ public sealed class KafkaAnalyticsConsumer(
 
             case "bet-resolved":
                 var estado = GetInt(doc, "estado");
-                store.RegistarApostaResolvida(tipoAposta, ganhou: estado == 2);
+                store.RegistarApostaResolvida(tipoAposta, ganhou: estado == 2, montante, odd);
+                alerts.VerificarPadraoResultados();
                 break;
         }
     }

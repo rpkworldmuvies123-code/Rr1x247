@@ -91,7 +91,21 @@ public sealed class KafkaConsumerService(
             }
 
             var estadoLocal = Convert.ToInt32(local["Estado"]);
-            if (estadoLocal is 3 or 4 or 5) return;
+            if (estadoLocal is 3 or 4 or 5)
+            {
+                // Jogo já terminal — se houver pagamentos pendentes significa que a publicação
+                // RabbitMQ falhou numa tentativa anterior (ex: RabbitMQ estava em baixo).
+                // Re-publicar para garantir resolução das apostas.
+                var pendentes = await db.ObterPagamentosPendentesAsync(evento.CodigoJogo);
+                if (pendentes.Count > 0)
+                {
+                    await rabbit.PublicarResolucaoApostasAsync(evento.CodigoJogo, estadoLocal);
+                    logger.LogWarning(
+                        "[Kafka] Re-publicado RabbitMQ para {CodigoJogo} — {N} pagamento(s) pendente(s) após recovery",
+                        evento.CodigoJogo, pendentes.Count);
+                }
+                return;
+            }
 
             var gcLocal = local["GolosCasa"] != null ? Convert.ToInt32(local["GolosCasa"]) : 0;
             var gvLocal = local["GolosVisitante"] != null ? Convert.ToInt32(local["GolosVisitante"]) : 0;

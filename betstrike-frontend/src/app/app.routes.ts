@@ -52,6 +52,12 @@ export const routes: Routes = [
       import('./features/admin/admin-users.component').then((m) => m.AdminUsersComponent)
   },
   {
+    path: 'admin/analytics',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/analytics-dashboard.component').then((m) => m.AnalyticsDashboardComponent)
+  },
+  {
     path: '**',
     redirectTo: 'login'
   }

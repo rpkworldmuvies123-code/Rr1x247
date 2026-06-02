@@ -23,7 +23,8 @@ public sealed class KafkaProducerService : IDisposable
     }
 
     public void Publicar(string tipo, string codigoJogo, string utilizadorId,
-        string tipoAposta, decimal montante, decimal odd, int estado, int apostaId)
+        string tipoAposta, decimal montante, decimal odd, int estado, int apostaId,
+        string competicao = "")
     {
         var payload = JsonSerializer.Serialize(new
         {
@@ -35,6 +36,7 @@ public sealed class KafkaProducerService : IDisposable
             montante,
             odd,
             estado,
+            competicao,
             timestamp = DateTime.UtcNow,
         });
 

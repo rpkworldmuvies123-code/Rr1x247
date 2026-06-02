@@ -26,7 +26,15 @@ public sealed class RabbitMqService : IAsyncDisposable
         var user = config["RabbitMQ:User"] ?? "guest";
         var password = config["RabbitMQ:Password"] ?? "guest";
 
-        var factory = new ConnectionFactory { HostName = host, UserName = user, Password = password };
+        var factory = new ConnectionFactory
+        {
+            HostName = host,
+            UserName = user,
+            Password = password,
+            AutomaticRecoveryEnabled = true,        // reconecta automaticamente após falha
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(5),
+            TopologyRecoveryEnabled = true,          // re-declara filas/exchanges após recovery
+        };
         var connection = await factory.CreateConnectionAsync();
         var channel = await connection.CreateChannelAsync();
 

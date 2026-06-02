@@ -21,6 +21,8 @@ public sealed class AnalyticsController(MetricsStore store) : ControllerBase
         taxasVitoria = store.TaxasVitoria(),
         volumePorCompeticao = store.TodosVolumesPorCompeticao(),
         exposicaoFinanceira = store.TodasExposicoes(),
+        volumeTotal = store.VolumeTotal(),
+        margemPlataforma = store.MargemPlataforma(),
         timestamp = DateTime.UtcNow,
     });
 

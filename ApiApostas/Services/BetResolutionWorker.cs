@@ -66,12 +66,23 @@ public sealed class BetResolutionWorker(
 
             if (retryCount < MaxRetries)
             {
-                // Nack com requeue → nova tentativa
-                await rabbit.Channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
+                // Publicar nova mensagem com contador incrementado, ack a original.
+                // BasicNack(requeue:true) não permite alterar headers — por isso re-publicamos manualmente.
+                var props = new BasicProperties();
+                props.Headers = new Dictionary<string, object?> { ["x-retry-count"] = (long)(retryCount + 1) };
+                props.DeliveryMode = DeliveryModes.Persistent;
+                await rabbit.Channel.BasicPublishAsync(
+                    exchange: "",
+                    routingKey: RabbitMqService.QueueBetResolution,
+                    mandatory: false,
+                    basicProperties: props,
+                    body: ea.Body,
+                    cancellationToken: ct);
+                await rabbit.Channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken: ct);
             }
             else
             {
-                // Esgotou retries → vai para DLQ via x-dead-letter
+                // Esgotou retries → DLQ via x-dead-letter
                 logger.LogWarning("[RabbitMQ] Mensagem enviada para DLQ: {CodigoJogo}", codigoJogo ?? "?");
                 await rabbit.Channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: ct);
             }
@@ -81,14 +92,10 @@ public sealed class BetResolutionWorker(
     private static int GetRetryCount(BasicDeliverEventArgs ea)
     {
         if (ea.BasicProperties.Headers is not null &&
-            ea.BasicProperties.Headers.TryGetValue("x-death", out var deathObj) &&
-            deathObj is List<object> deaths && deaths.Count > 0 &&
-            deaths[0] is Dictionary<string, object> death &&
-            death.TryGetValue("count", out var count))
+            ea.BasicProperties.Headers.TryGetValue("x-retry-count", out var val))
         {
-            return Convert.ToInt32(count);
+            return Convert.ToInt32(val);
         }
-
         return 0;
     }
 

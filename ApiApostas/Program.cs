@@ -67,6 +67,7 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddHostedService<KafkaConsumerService>();
 builder.Services.AddHostedService<BetResolutionWorker>();
+builder.Services.AddHostedService<PendingBetsSweeperService>();
 // SincronizacaoService (polling HTTP) substituído pelo KafkaConsumerService
 
 // PagamentosClient — typed HttpClient com InternalKey injectado no header
