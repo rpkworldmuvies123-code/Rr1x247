@@ -19,7 +19,7 @@ Plataforma fictícia de apostas desportivas desenvolvida no âmbito da UC de Int
 
 ## Configuração
 
-Copiar o ficheiro de exemplo e preenche os valores:
+Copiar o ficheiro de exemplo e preencher os valores:
 
 ```bash
 cp .env.example .env
