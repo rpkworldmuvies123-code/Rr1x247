@@ -1,0 +1,27 @@
+BetStrike — Dashboards & Links Rápidos
+======================================
+
+FRONTEND (Angular)
+  http://localhost:4200
+  admin@betstrike.pt / Admin123!
+
+GERADORDADOS
+  http://localhost:5300
+
+RABBITMQ UI
+  http://localhost:15672
+  betstrike / DbauEVqKEmkn2Hk7
+
+ANALYTICS
+  http://localhost:5400/api/analytics/resumo
+  http://localhost:5400/api/analytics/alertas
+  http://localhost:5400/health
+
+HEALTH CHECKS
+  http://localhost:5141/health        (ApiApostas)
+  http://localhost:5204/health        (ApiResultados)
+  http://localhost:5204/health/ready  (ApiResultados readiness)
+
+API DOCS
+  http://localhost:5204/scalar        (ApiResultados)
+  http://localhost:5141/scalar        (ApiApostas)

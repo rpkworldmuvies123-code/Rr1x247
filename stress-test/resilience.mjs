@@ -212,10 +212,6 @@ async function cenario1_kafka_down() {
   log(jogoRec.status === 200 ? 'OK' : 'ERR',
     `${cod3} propagado após recovery: ${jogoRec.status === 200 ? c('32','SIM ✓') : c('91','NÃO ✗')}`);
 
-  console.log(`\n  ${c('93','⚠ Conclusão')}: Kafka fire-and-forget — eventos publicados durante downtime são ${c('91','perdidos')}.`);
-  console.log(`  O jogo ${cod2} ficou na BD de ApiResultados mas nunca chegou a ApiApostas.`);
-  console.log(`  ${c('36','Mitigação')}: monitorizar o callback de erro do producer e alertar operações.\n`);
-
   return { user, cod1, cod3 };
 }
 
@@ -276,9 +272,6 @@ async function cenario2_rabbitmq_down() {
   const dlq = await getRabbitQueueInfo('bet-resolution.dlq');
   log('RESULT', `RabbitMQ fila bet-resolution: ${q?.messages ?? '?'} msgs  |  DLQ: ${dlq?.messages ?? '?'} msgs`);
 
-  console.log(`\n  ${c('32','✓ Conclusão')}: Kafka manual commit garantiu que o evento não se perdeu.`);
-  console.log(`  O KafkaConsumerService não fez commit do offset enquanto RabbitMQ estava em baixo.`);
-  console.log(`  Após restart, o evento foi re-consumido e as apostas resolvidas.\n`);
 }
 
 async function cenario3_apipagamentos_down() {
@@ -371,9 +364,6 @@ async function cenario3_apipagamentos_down() {
     `Aposta após re-injecção: estado=${estadoFinal} ${estadoFinal === 2 ? c('32','(Ganha ✓)') : c('93','(verificar logs)')}`);
   log('RESULT', `Saldo: ${saldoInicial} → ${saldoFinal} €`);
 
-  console.log(`\n  ${c('32','✓ Conclusão')}: Falha em ApiPagamentos não perde apostas.`);
-  console.log(`  Após ${c('1','3 retries')}, a mensagem vai para a DLQ onde pode ser inspecionada e re-injectada.`);
-  console.log(`  ${c('36','Em produção')}: um operador monitoriza a DLQ e re-processa quando o serviço recupera.\n`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
