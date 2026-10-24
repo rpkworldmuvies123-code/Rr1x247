@@ -7,14 +7,14 @@ GO
 -- ============================================================
 -- 1. CRIAR BASE DE DADOS
 -- ============================================================
-IF DB_ID(N'betstrike-resultados') IS NULL
+IF DB_ID(N'rr1x24-resultados') IS NULL
 BEGIN
-    CREATE DATABASE [betstrike-resultados];
-    PRINT 'database betstrike-resultados criada com sucesso.';
+    CREATE DATABASE [rr1x24-resultados];
+    PRINT 'database rr1x24-resultados criada com sucesso.';
 END
 ELSE
 BEGIN
-    PRINT 'database betstrike-resultados ja existe.';
+    PRINT 'database rr1x24-resultados ja existe.';
 END
 GO
 
@@ -22,7 +22,7 @@ GO
 -- ============================================================
 -- 3. CRIAR TABELAS
 -- ============================================================
-USE [betstrike-resultados];
+USE [rr1x24-resultados];
 GO
 
 BEGIN TRY
@@ -185,10 +185,10 @@ BEGIN
     IF USER_ID('resultados') IS NULL
     BEGIN
         CREATE USER [resultados] FOR LOGIN [resultados];
-        PRINT 'utilizador resultados criado em betstrike-resultados.';
+        PRINT 'utilizador resultados criado em rr1x24-resultados.';
     END
     ELSE
-        PRINT 'utilizador resultados ja existe em betstrike-resultados.';
+        PRINT 'utilizador resultados ja existe em rr1x24-resultados.';
 
     GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.jogo      TO [resultados];
     GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.resultado TO [resultados];
