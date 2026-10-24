@@ -78,13 +78,13 @@ GO
 EOF
 run_sql -i /tmp/logins.sql
 
-echo "[db-init] Configurando betstrike-resultados..."
+echo "[db-init] Configurando rr1x24-resultados..."
 run_sql -i /sql/setup.sql
 
-echo "[db-init] Configurando betstrike-pagamentos..."
+echo "[db-init] Configurando rr1x24-pagamentos..."
 run_sql -i /sql/pagamentos_setup.sql
 
-echo "[db-init] Configurando betstrike-apostas..."
+echo "[db-init] Configurando rr1x24-apostas..."
 run_sql -i /sql/apostas_setup.sql
 
 echo "[db-init] Inicializacao concluida com sucesso."
