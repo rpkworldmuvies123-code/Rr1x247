@@ -76,7 +76,7 @@
     container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-rr1x24}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}"
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
@@ -160,7 +160,7 @@
       Kafka__BootstrapServers: "kafka:9092"
       RabbitMQ__Host: "rabbitmq"
       RabbitMQ__User: "${RABBITMQ_USER:-rr1x24}"
-      RabbitMQ__Password: "${RABBITMQ_PASSWORD:-${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}}"
+      RabbitMQ__Password: "${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}"
     ports:
       - "${APIAPOSTAS_PORT:-5141}:8080"
     networks:
@@ -242,7 +242,7 @@
   frontend:
     image: rr1x24-frontend
     build:
-      context: ./rr1x24-frontend
+      context: ./betstrike-frontend
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-4200}:80"
