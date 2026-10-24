@@ -3,7 +3,7 @@
     <section class="goal-notifications" aria-live="polite" aria-relevant="additions">
       @for (notification of goalNotifications(); track notification.id) {
         <div class="goal-panel" role="status">
-          <p class="goal-label">Golo</p>
+          <p class="goal-label">GOAL</p>
           <p>{{ notification.message }}</p>
         </div>
       }
@@ -11,33 +11,34 @@
   }
 
   <section class="panel">
-    <h1 id="games-title">Jogos da Jornada</h1>
+    <div class="page-heading">
+      <p class="eyebrow">RR1X24 SPORTS</p>
+      <h1 id="games-title">Matches & Odds</h1>
+      <p class="subtitle">Browse scheduled matches and follow the latest simulated results.</p>
+    </div>
 
     <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()" novalidate>
       <div>
-        <label for="date">Data</label>
+        <label for="date">Date</label>
         <input id="date" type="date" formControlName="date" />
       </div>
-
       <div>
-        <label for="estado">Estado</label>
+        <label for="estado">Match status</label>
         <select id="estado" formControlName="estado">
           @for (option of statusOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
         </select>
       </div>
-
       <div class="actions">
-        <button type="submit">Filtrar</button>
-        <button type="button" class="secondary" (click)="clearFilters()">Limpar</button>
+        <button type="submit">Apply filters</button>
+        <button type="button" class="secondary" (click)="clearFilters()">Clear</button>
       </div>
     </form>
 
     @if (isLoading()) {
-      <p role="status" aria-live="polite">A carregar jogos...</p>
+      <p role="status" aria-live="polite">Loading matches...</p>
     }
-
     @if (errorMessage()) {
       <p class="error" role="alert">{{ errorMessage() }}</p>
     }
@@ -45,17 +46,17 @@
     @if (!isLoading() && hasGames()) {
       <div class="table-wrap">
         <table>
-          <caption class="sr-only">Lista de jogos da jornada</caption>
+          <caption class="sr-only">List of available matches</caption>
           <thead>
             <tr>
-              <th scope="col">Código</th>
-              <th scope="col">Jogo</th>
-              <th scope="col">Competição</th>
-              <th scope="col">Data</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Marcador</th>
-              <th scope="col">Detalhes</th>
-              <th scope="col">Apostar</th>
+              <th scope="col">Code</th>
+              <th scope="col">Match</th>
+              <th scope="col">Competition</th>
+              <th scope="col">Kick-off</th>
+              <th scope="col">Status</th>
+              <th scope="col">Score</th>
+              <th scope="col">Details</th>
+              <th scope="col">Betting</th>
             </tr>
           </thead>
           <tbody>
@@ -65,16 +66,14 @@
                 <td>{{ game.homeTeam }} vs {{ game.awayTeam }}</td>
                 <td>{{ game.competition }}</td>
                 <td>{{ game.startTime | date:'dd/MM/yy HH:mm' }}</td>
-                <td>
-                  <span class="badge badge-{{ estadoClass(game.estado) }}">{{ estadoLabel(game.estado) }}</span>
-                </td>
+                <td><span class="badge badge-{{ estadoClass(game.estado) }}">{{ estadoLabel(game.estado) }}</span></td>
                 <td class="score-cell">{{ game.homeScore }} – {{ game.awayScore }}</td>
-                <td><a [routerLink]="['/games', game.id]">Ver</a></td>
+                <td><a [routerLink]="['/games', game.id]">View</a></td>
                 <td>
                   @if (canBet(game)) {
-                    <a class="bet-link" [routerLink]="['/games', game.id, 'bet']">Apostar</a>
+                    <a class="bet-link" [routerLink]="['/games', game.id, 'bet']">Open market</a>
                   } @else {
-                    <span class="no-bet">—</span>
+                    <span class="no-bet">Closed</span>
                   }
                 </td>
               </tr>
@@ -85,7 +84,7 @@
     }
 
     @if (!isLoading() && !hasGames()) {
-      <p role="status" aria-live="polite">Nenhum jogo encontrado para os filtros aplicados.</p>
+      <p role="status" aria-live="polite">No matches found for the selected filters.</p>
     }
   </section>
 </main>
