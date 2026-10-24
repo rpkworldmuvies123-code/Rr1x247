@@ -3,16 +3,16 @@
 USE [master];
 GO
 
-IF DB_ID(N'betstrike-apostas') IS NULL
+IF DB_ID(N'rr1x24-apostas') IS NULL
 BEGIN
-    CREATE DATABASE [betstrike-apostas];
-    PRINT 'database betstrike-apostas criada.';
+    CREATE DATABASE [rr1x24-apostas];
+    PRINT 'database rr1x24-apostas criada.';
 END
 ELSE
-    PRINT 'database betstrike-apostas ja existe.';
+    PRINT 'database rr1x24-apostas ja existe.';
 GO
 
-USE [betstrike-apostas];
+USE [rr1x24-apostas];
 GO
 
 -- ================================================================
@@ -858,7 +858,7 @@ BEGIN
     IF USER_ID('apostas') IS NULL
     BEGIN
         CREATE USER [apostas] FOR LOGIN [apostas];
-        PRINT 'utilizador apostas criado em betstrike-apostas.';
+        PRINT 'utilizador apostas criado em rr1x24-apostas.';
     END
     ELSE
         PRINT 'utilizador apostas ja existe.';
@@ -895,7 +895,7 @@ BEGIN
 END
 GO
 
--- Nota: o login [apostas] nao tem mais acesso directo a betstrike-pagamentos.
+-- Nota: o login [apostas] nao tem mais acesso directo a rr1x24-pagamentos.
 -- A comunicacao entre ApiApostas e ApiPagamentos e feita via HTTP (X-Internal-Key).
-USE [betstrike-apostas];
+USE [rr1x24-apostas];
 GO
