@@ -65,7 +65,7 @@ export class AdminUsersComponent {
 
     const { valor, motivo } = this.adjustForm.getRawValue();
     if (valor === 0) {
-      this.setFeedback('error', 'O valor não pode ser zero.');
+      this.setFeedback('error', 'Amount cannot be zero.');
       return;
     }
 
@@ -77,14 +77,14 @@ export class AdminUsersComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
-          const direction = valor > 0 ? 'creditados' : 'debitados';
+          const direction = valor > 0 ? 'credited' : 'debited';
           this.setFeedback('success', `${Math.abs(valor).toFixed(2)} EUR ${direction} para ${user.Email}.`);
           this.isAdjusting.set(false);
           this.adjustForm.reset({ valor: 0, motivo: '' });
           this.loadUtilizadores();
         },
         error: (err: any) => {
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao ajustar saldo.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Failed to adjust balance.');
           this.isAdjusting.set(false);
         }
       });
@@ -121,7 +121,7 @@ export class AdminUsersComponent {
         },
         error: (err: any) => {
           this.utilizadores.set([]);
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao carregar utilizadores.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Failed to load users.');
           this.isLoading.set(false);
         }
       });
