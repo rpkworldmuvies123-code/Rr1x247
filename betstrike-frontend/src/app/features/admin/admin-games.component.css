@@ -1,167 +1,25 @@
-:host {
-  display: block;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.page {
-  padding: 12px 0;
-}
-
-.panel {
-  max-width: none;
-  margin: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 12px 92px;
-  box-shadow: var(--shadow-lg);
-}
-
-.add-section,
-.list-section {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-h1,
-h2 {
-  margin: 0 0 10px;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-form {
-  display: grid;
-  gap: 6px;
-}
-
-label {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-input,
-select,
-button {
-  border: 1px solid var(--line-strong);
-  border-radius: 0;
-  padding: 4px 6px;
-  font-size: 14px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-button {
-  font-weight: 700;
-  cursor: pointer;
-  background: transparent;
-  transition: background-color 0.15s ease;
-}
-
-button:active:not(:disabled) {
-  background: #f0f0f0;
-}
-
-.feedback {
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 6px;
-  margin-bottom: 10px;
-}
-
-.feedback.success {
-  background: rgb(102 213 142 / 10%);
-  color: var(--success-text);
-}
-
-.feedback.error {
-  background: var(--danger-soft);
-  color: var(--error-text);
-}
-
-.games-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.games-list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--surface);
-}
-
-.game-meta {
-  display: grid;
-  gap: 3px;
-}
-
-.teams {
-  margin: 0;
-  font-weight: 700;
-}
-
-.small {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.actions,
-.dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.edit-btn {
-  background: transparent;
-  color: var(--primary-strong);
-}
-
-.remove-btn {
-  background: transparent;
-  color: var(--danger-text);
-}
-
-.ghost-btn {
-  background: transparent;
-  color: var(--text-muted);
-}
-
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.edit-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 35%);
-  display: grid;
-  place-items: center;
-  padding: 10px;
-  z-index: 20;
-}
-
-.edit-dialog {
-  width: min(480px, 100%);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  box-shadow: var(--shadow-lg);
-  padding: 10px;
-}
+:host { display: block; background: var(--bg); color: var(--text); }
+.page { padding: 1.25rem; max-width: 1440px; margin: 0 auto; }
+.panel { max-width: none; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: clamp(1rem, 2.5vw, 2rem); box-shadow: var(--shadow-lg); }
+.add-section, .list-section { background: var(--surface-muted); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 1rem; margin-top: 1rem; }
+h1, h2 { margin: 0 0 .75rem; font-size: 1.15rem; font-weight: 800; }
+form { display: grid; gap: .5rem; }
+label { font-weight: 700; font-size: .85rem; color: var(--text-muted); }
+input, select, button { border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: .55rem .65rem; font-size: .9rem; background: var(--surface); color: var(--text); }
+button { font-weight: 700; cursor: pointer; background: transparent; transition: background-color .15s ease; }
+button:active:not(:disabled) { background: var(--primary-soft); }
+.feedback { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .65rem; margin-bottom: .75rem; }
+.feedback.success { background: rgb(102 213 142 / 10%); color: var(--success-text); }
+.feedback.error { background: var(--danger-soft); color: var(--error-text); }
+.games-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.games-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.game-meta { display: grid; gap: .2rem; }
+.teams { margin: 0; font-weight: 700; }
+.small { margin: 0; color: var(--text-muted); font-size: .82rem; }
+.actions, .dialog-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.edit-btn { background: var(--primary-soft); color: var(--primary-strong); }
+.remove-btn { background: transparent; color: var(--danger-text); }
+.ghost-btn { background: transparent; color: var(--text-muted); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.edit-overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 55%); display: grid; place-items: center; padding: 1rem; z-index: 20; }
+.edit-dialog { width: min(480px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 1rem; }
