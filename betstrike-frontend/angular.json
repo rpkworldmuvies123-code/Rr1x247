@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "betstrike-frontend": {
+    "rr1x24-frontend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -68,10 +68,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "betstrike-frontend:build:production"
+              "buildTarget": "rr1x24-frontend:build:production"
             },
             "development": {
-              "buildTarget": "betstrike-frontend:build:development",
+              "buildTarget": "rr1x24-frontend:build:development",
               "proxyConfig": "proxy.conf.json"
             }
           },
