@@ -2,7 +2,7 @@
 
 RR1X24 sports platform based on the upstream IS-BetStrike demonstration project.
 
-> **Important:** The upstream project is a fictional sports-betting demonstration and uses simulated match data. This code has not been verified as production-ready for live sports data, real-money payments, or commercial betting.
+> **Important:** This is a fictional sports-betting demo. Match data is simulated. Do not use it for real-money betting or production payments without independent engineering, security, payments, and legal review.
 
 ## Stack
 - Angular frontend
@@ -13,14 +13,16 @@ RR1X24 sports platform based on the upstream IS-BetStrike demonstration project.
 
 ## Run locally
 1. Install Docker and Docker Compose.
-2. Copy the example environment file: `cp .env.example .env`.
-3. Set strong, unique secrets and administrator credentials in `.env`.
-4. Start services: `docker compose up --build`.
-5. Use the frontend port shown in `compose.yaml`.
+2. Copy `.env.example` to `.env`.
+3. Replace **every** `CHANGE_ME_*` value with a strong unique secret/password. Do not commit `.env`.
+4. Start with `docker compose up --build`.
+5. Frontend is mapped to port 4200 by default; check service health/logs before using it.
 
-Never commit a real `.env` file, passwords, API keys, payment secrets, or production credentials.
+## Important configuration notes
+- This is an adapted fork: verify the Compose file, SQL scripts, environment placeholders, and .NET connection strings together before running.
+- Configure an admin account and rotate all secrets before use.
+- The upstream project licence must be checked before redistribution or commercial use.
+- Live cricket/match data and real-money payment integrations are **not** included or verified by a branding change.
 
 ## Upstream
-Source repository: https://github.com/joaoesteves10/IS-BetStrike
-
-Check the upstream project's license and comply with applicable laws and provider requirements before redistribution or deployment. Branding changes do not imply production readiness.
+https://github.com/joaoesteves10/IS-BetStrike
