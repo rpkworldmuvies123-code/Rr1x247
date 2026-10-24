@@ -42,7 +42,7 @@
                 <td class="mono">#{{ bet.id }}</td>
                 <td>
                   <a [routerLink]="['/games', bet.codigoJogo]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
-                  <span class="bet-code">{{ bet.codigoMatch }}</span>
+                  <span class="bet-code">{{ bet.codigoJogo }}</span>
                 </td>
                 <td><strong>{{ bet.tipoAposta }}</strong></td>
                 <td class="mono">{{ bet.montanteApostado | number:'1.2-2' }} €</td>
