@@ -41,11 +41,11 @@ export class MyBetsComponent {
 
   protected estadoLabel(estado: number): string {
     switch (estado) {
-      case 1: return 'Pendente';
-      case 2: return 'Ganha';
-      case 3: return 'Perdida';
-      case 4: return 'Anulada';
-      default: return 'Desconhecida';
+      case 1: return 'Pending';
+      case 2: return 'Won';
+      case 3: return 'Lost';
+      case 4: return 'Voided';
+      default: return 'Unknown';
     }
   }
 
@@ -81,12 +81,12 @@ export class MyBetsComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.feedbackMessage.set(`Aposta #${aposta.id} cancelada com sucesso.`);
+          this.feedbackMessage.set(`Aposta #${aposta.id} cancelled successfully.`);
           this.cancelingBetId.set(null);
           this.loadBets();
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível cancelar a aposta.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to cancel bet.');
           this.cancelingBetId.set(null);
         }
       });
@@ -106,7 +106,7 @@ export class MyBetsComponent {
         },
         error: (err: any) => {
           this.bets.set([]);
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar as apostas.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to load bets.');
           this.isLoading.set(false);
         }
       });
