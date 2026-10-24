@@ -3,7 +3,7 @@
     <div class="panel-header">
       <h1>Analytics</h1>
       @if (lastUpdate()) {
-        <p class="last-update">atualizado às {{ lastUpdate() | date:'HH:mm:ss' }}</p>
+        <p class="last-update">updated at {{ lastUpdate() | date:'HH:mm:ss' }}</p>
       }
     </div>
 
@@ -14,37 +14,37 @@
     @if (resumo(); as r) {
       <div class="kpi-grid">
         <div class="kpi-card">
-          <span class="kpi-label">Apostas / min</span>
+          <span class="kpi-label">Bets / min</span>
           <span class="kpi-value">{{ r.apostas.ultimoMinuto }}</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">Apostas / 5 min</span>
+          <span class="kpi-label">Bets / 5 min</span>
           <span class="kpi-value">{{ r.apostas.ultimos5Minutos }}</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">Utilizadores ativos (5 min)</span>
+          <span class="kpi-label">Active users (5 min)</span>
           <span class="kpi-value">{{ r.utilizadoresAtivos5Min }}</span>
         </div>
         <div class="kpi-card" [class.kpi-card--warn]="exposicaoTotal(r.exposicaoFinanceira) > 500">
-          <span class="kpi-label">Exposição total</span>
+          <span class="kpi-label">Total exposure</span>
           <span class="kpi-value">{{ exposicaoTotal(r.exposicaoFinanceira) | number:'1.2-2' }} €</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">Volume apostado</span>
+          <span class="kpi-label">Betting volume</span>
           <span class="kpi-value">{{ r.volumeTotal | number:'1.2-2' }} €</span>
         </div>
         <div class="kpi-card" [class.kpi-card--warn]="r.margemPlataforma < 0">
-          <span class="kpi-label">Margem plataforma</span>
+          <span class="kpi-label">Platform margin</span>
           <span class="kpi-value">{{ r.margemPlataforma | number:'1.2-2' }} €</span>
         </div>
       </div>
 
       <div class="section-grid">
         <div class="card">
-          <h2 class="card-title">Taxas de vitória</h2>
+          <h2 class="card-title">Win rates</h2>
           @let tv = r.taxasVitoria;
           <table class="data-table">
-            <thead><tr><th>Resultado</th><th>Ganhas</th><th>Taxa</th></tr></thead>
+            <thead><tr><th>Outcome</th><th>Won</th><th>Rate</th></tr></thead>
             <tbody>
               <tr><td>1 — Casa</td><td>{{ tv.ganhou1 }}</td><td>{{ taxaVitoriaPercent(tv.ganhou1, tv.total) }}</td></tr>
               <tr><td>X — Empate</td><td>{{ tv.ganhouX }}</td><td>{{ taxaVitoriaPercent(tv.ganhouX, tv.total) }}</td></tr>
