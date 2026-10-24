@@ -42,7 +42,7 @@ interface AuthMeResponse {
 export class AuthService {
   private readonly httpClient = inject(HttpClient);
   private readonly apiBaseUrl = environment.apiApostasBaseUrl;
-  private readonly storageKey = 'betstrike.session';
+  private readonly storageKey = 'rr1x24.session';
   private readonly session = signal<AuthSession | null>(this.readStoredSession());
 
   readonly isAuthenticated = computed(() => this.session() !== null);
@@ -53,7 +53,7 @@ export class AuthService {
     const email = request.email.trim();
 
     if (!email || !request.password.trim()) {
-      return throwError(() => new Error('Credenciais invalidas.'));
+      return throwError(() => new Error('Invalid credentials.'));
     }
 
     return this.httpClient
@@ -69,7 +69,7 @@ export class AuthService {
     const nomeCompleto = request.nomeCompleto.trim();
 
     if (!email || !nomeCompleto || !request.password.trim()) {
-      return throwError(() => new Error('Dados de registo invalidos.'));
+      return throwError(() => new Error('Invalid registration details.'));
     }
 
     return this.httpClient
@@ -85,7 +85,7 @@ export class AuthService {
     const session = this.session();
 
     if (!session?.token) {
-      return throwError(() => new Error('Nao existe sessao ativa.'));
+      return throwError(() => new Error('No active session.'));
     }
 
     return this.httpClient.get<AuthMeResponse>(`${this.apiBaseUrl}/auth/me`).pipe(
@@ -155,7 +155,7 @@ export class AuthService {
   }
 
   private handleError(error: any): Observable<never> {
-    const message = error?.error?.message || 'Erro ao comunicar com a ApiApostas.';
+    const message = error?.error?.message || 'Error communicating with the betting API.';
     return throwError(() => new Error(message));
   }
 }
