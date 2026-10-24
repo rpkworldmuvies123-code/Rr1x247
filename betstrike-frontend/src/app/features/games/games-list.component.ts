@@ -37,13 +37,13 @@ export class GamesListComponent {
   protected readonly estadoClass = estadoClass;
 
   protected readonly statusOptions: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'open', label: 'Apostas abertas' },
-    { value: '', label: 'Todos os estados' },
-    { value: '1', label: 'Agendado' },
-    { value: '2', label: 'Em Curso' },
-    { value: '3', label: 'Finalizado' },
-    { value: '4', label: 'Cancelado' },
-    { value: '5', label: 'Adiado' }
+    { value: 'open', label: 'Open for betting' },
+    { value: '', label: 'All statuses' },
+    { value: '1', label: 'Scheduled' },
+    { value: '2', label: 'Live' },
+    { value: '3', label: 'Finished' },
+    { value: '4', label: 'Cancelled' },
+    { value: '5', label: 'Postponed' }
   ];
 
   protected readonly filterForm = this.formBuilder.nonNullable.group({
@@ -96,7 +96,7 @@ export class GamesListComponent {
           this.isLoading.set(false);
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar os jogos.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to load matches.');
           this.isLoading.set(false);
         }
       });
@@ -112,11 +112,11 @@ export class GamesListComponent {
 
       while (h < game.homeScore) {
         h++;
-        this.addGoalNotification(`Golo! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
+        this.addGoalNotification(`GOAL! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
       }
       while (a < game.awayScore) {
         a++;
-        this.addGoalNotification(`Golo! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
+        this.addGoalNotification(`GOAL! ${game.homeTeam} ${h} – ${a} ${game.awayTeam}`);
       }
     }
   }
