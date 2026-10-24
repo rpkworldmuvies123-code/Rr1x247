@@ -6,7 +6,7 @@ GO
 
 IF SUSER_ID('resultados') IS NULL
 	BEGIN
-		CREATE LOGIN [resultados] WITH PASSWORD = 'PASSWORD_SEGURA_AQUI';
+		CREATE LOGIN [resultados] WITH PASSWORD = 'CHANGE_ME_STRONG_PASSWORD_FOR_RESULTS_DB';
 		PRINT 'login [resultados] criado com sucesso.';
 	END
 ELSE
