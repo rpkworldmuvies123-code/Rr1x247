@@ -33,11 +33,8 @@ export class App {
   protected readonly isBalanceLoading = signal(false);
   protected readonly balanceLabel = computed(() => {
     const currentBalance = this.balance();
-    if (currentBalance === null) {
-      return '--';
-    }
-
-    return `${currentBalance.toFixed(2)} EUR`;
+    if (currentBalance === null) return '--';
+    return `${currentBalance.toFixed(2)}`;
   });
 
   constructor() {
@@ -49,21 +46,15 @@ export class App {
         this.isBalanceLoading.set(false);
         return;
       }
-
       this.loadBalance();
     }, { allowSignalWrites: true });
 
     const intervalId = window.setInterval(() => {
-      if (this.isAuthenticated()) {
-        this.loadBalance();
-      }
+      if (this.isAuthenticated()) this.loadBalance();
     }, this.balanceRefreshMs);
 
-    this.destroyRef.onDestroy(() => {
-      window.clearInterval(intervalId);
-    });
+    this.destroyRef.onDestroy(() => window.clearInterval(intervalId));
   }
-
 
   protected toggleTheme(): void {
     const nextTheme: ThemeMode = this.themeMode() === 'dark' ? 'light' : 'dark';
@@ -79,9 +70,7 @@ export class App {
 
   private loadBalance(): void {
     this.isBalanceLoading.set(true);
-
-    this.apostasApiService
-      .consultarSaldo()
+    this.apostasApiService.consultarSaldo()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (saldo) => {
@@ -97,12 +86,7 @@ export class App {
 
   private readInitialTheme(): ThemeMode {
     const storedTheme = localStorage.getItem(this.themeStorageKey);
-
-    if (storedTheme === 'light' || storedTheme === 'dark') {
-      return storedTheme;
-    }
-
-    return 'dark';
+    return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
   }
 
   private applyTheme(theme: ThemeMode): void {
