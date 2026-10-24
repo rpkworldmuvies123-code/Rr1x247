@@ -2,16 +2,16 @@
   <section class="panel">
     <div class="header-row">
       <div>
-        <h1 id="admin-users-title">Gestão de Utilizadores</h1>
+        <h1 id="admin-users-title">Manage Users</h1>
         <p class="subtitle">
-          <a [routerLink]="['/admin/games']">&larr; Admin jogos</a>
+          <a [routerLink]="['/admin/games']">&larr; Match admin</a>
         </p>
       </div>
       <div class="header-actions">
         <button type="button" (click)="toggleLog()">
-          @if (showLog()) { Fechar log } @else { Ver log admin }
+          @if (showLog()) { Close log } @else { View admin log }
         </button>
-        <button type="button" (click)="refresh()" [disabled]="isLoading()">Atualizar</button>
+        <button type="button" (click)="refresh()" [disabled]="isLoading()">Refresh</button>
       </div>
     </div>
 
@@ -23,16 +23,16 @@
     }
 
     @if (isLoading()) {
-      <p role="status">A carregar utilizadores...</p>
-    } @else if (hasUtilizadores()) {
+      <p role="status">Loading users...</p>
+    } @else if (hasUseres()) {
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Nome / Email</th>
-              <th>Saldo</th>
-              <th>Registo</th>
-              <th>Papel</th>
+              <th>Name / Email</th>
+              <th>Balance</th>
+              <th>Registered</th>
+              <th>Role</th>
               <th></th>
             </tr>
           </thead>
@@ -43,8 +43,8 @@
                   <strong>{{ u.NomeCompleto }}</strong>
                   <span class="email">{{ u.Email }}</span>
                 </td>
-                <td class="mono">{{ u.SaldoAtual | number:'1.2-2' }} EUR</td>
-                <td class="date-col">{{ u.DataRegisto | date:'dd/MM/yy HH:mm' }}</td>
+                <td class="mono">{{ u.BalanceAtual | number:'1.2-2' }} EUR</td>
+                <td class="date-col">{{ u.DateRegistered | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
                   @if (u.IsAdmin) {
                     <span class="badge badge-em-curso">Admin</span>
@@ -54,7 +54,7 @@
                 </td>
                 <td>
                   <button type="button" class="edit-btn" (click)="selectUser(u)">
-                    Ajustar saldo
+                    Adjust balance
                   </button>
                 </td>
               </tr>
@@ -63,7 +63,7 @@
         </table>
       </div>
     } @else {
-      <p class="empty">Sem utilizadores.</p>
+      <p class="empty">No users found.</p>
     }
   </section>
 
@@ -76,29 +76,29 @@
         aria-labelledby="adjust-dialog-title"
         (click)="$event.stopPropagation()"
       >
-        <h2 id="adjust-dialog-title">Ajustar saldo</h2>
+        <h2 id="adjust-dialog-title">Adjust balance</h2>
         <p class="dialog-user">
           <strong>{{ user.NomeCompleto }}</strong> — {{ user.Email }}<br />
-          Saldo atual: <strong>{{ user.SaldoAtual | number:'1.2-2' }} EUR</strong>
+          Balance atual: <strong>{{ user.BalanceAtual | number:'1.2-2' }} EUR</strong>
         </p>
 
         <form [formGroup]="adjustForm" (ngSubmit)="adjustBalance()" novalidate>
           <div class="field">
-            <label for="valor">Valor (EUR)</label>
-            <p class="field-hint">Positivo para creditar, negativo para debitar.</p>
+            <label for="valor">Amount (EUR)</label>
+            <p class="field-hint">Positive to credit, negative to debit.</p>
             <input id="valor" type="number" step="0.01" formControlName="valor" />
           </div>
 
           <div class="field">
-            <label for="motivo">Motivo (obrigatório)</label>
-            <input id="motivo" type="text" formControlName="motivo" placeholder="Ex: Bónus de boas-vindas" />
+            <label for="motivo">Reason (required)</label>
+            <input id="motivo" type="text" formControlName="motivo" placeholder="E.g. Welcome bonus" />
           </div>
 
           <div class="dialog-actions">
             <button type="submit" class="edit-btn" [disabled]="isAdjusting()">
-              @if (isAdjusting()) { A processar... } @else { Confirmar }
+              @if (isAdjusting()) { Processing... } @else { Confirm }
             </button>
-            <button type="button" class="ghost-btn" (click)="closePanel()">Cancelar</button>
+            <button type="button" class="ghost-btn" (click)="closePanel()">Cancel</button>
           </div>
         </form>
       </section>
@@ -107,10 +107,10 @@
 
   @if (showLog()) {
     <section class="panel log-panel" aria-labelledby="log-title">
-      <h2 id="log-title">Log de ações administrativas</h2>
+      <h2 id="log-title">Administrative action log</h2>
 
       @if (isLoadingLog()) {
-        <p role="status">A carregar log...</p>
+        <p role="status">Loading activity log...</p>
       } @else if (logEntries().length > 0) {
         <div class="table-wrap">
           <table>
@@ -118,10 +118,10 @@
               <tr>
                 <th>#</th>
                 <th>Admin</th>
-                <th>Utilizador</th>
-                <th>Ação</th>
-                <th>Detalhe</th>
-                <th>Data</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Details</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
@@ -129,17 +129,17 @@
                 <tr>
                   <td class="mono">#{{ entry.Id }}</td>
                   <td>{{ entry.AdminEmail }}</td>
-                  <td>{{ entry.UtilizadorEmail ?? '—' }}</td>
+                  <td>{{ entry.UserEmail ?? '—' }}</td>
                   <td><span class="acao-tag">{{ entry.Acao }}</span></td>
-                  <td class="detalhe">{{ entry.Detalhe }}</td>
-                  <td class="date-col">{{ entry.DataHora | date:'dd/MM/yy HH:mm' }}</td>
+                  <td class="detalhe">{{ entry.Details }}</td>
+                  <td class="date-col">{{ entry.DateHora | date:'dd/MM/yy HH:mm' }}</td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
       } @else {
-        <p class="empty">Sem registos no log.</p>
+        <p class="empty">No log entries.</p>
       }
     </section>
   }
