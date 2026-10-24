@@ -92,7 +92,7 @@ export class AdminGamesComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.setFeedback('success', 'Jogo criado com sucesso.');
+          this.setFeedback('success', 'Match created successfully.');
           this.createForm.reset({
             code: '',
             homeTeam: '',
@@ -103,7 +103,7 @@ export class AdminGamesComponent {
           this.loadGames();
         },
         error: (err: any) => {
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao criar jogo.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Failed to create match.');
         }
       });
   }
@@ -112,7 +112,7 @@ export class AdminGamesComponent {
     const game = this.editingGame();
 
     if (!game) {
-      this.setFeedback('error', 'Seleciona um jogo para editar.');
+      this.setFeedback('error', 'Select a match to edit.');
       return;
     }
 
@@ -133,19 +133,19 @@ export class AdminGamesComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.setFeedback('success', 'Jogo atualizado com sucesso.');
+          this.setFeedback('success', 'Match updated successfully.');
           this.closeEditDialog();
           this.loadGames();
         },
         error: (err: any) => {
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao atualizar o jogo.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Failed to update match.');
         }
       });
   }
 
   protected deleteGame(game: Game): void {
     if (!this.canDelete(game)) {
-      this.setFeedback('error', 'Apenas jogos agendados podem ser removidos.');
+      this.setFeedback('error', 'Only scheduled matches can be removed.');
       return;
     }
 
@@ -154,11 +154,11 @@ export class AdminGamesComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.setFeedback('success', 'Jogo removido com sucesso.');
+          this.setFeedback('success', 'Match removed successfully.');
           this.loadGames();
         },
         error: (err: any) => {
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Falha ao remover jogo.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Failed to remove match.');
         }
       });
   }
@@ -177,7 +177,7 @@ export class AdminGamesComponent {
         error: (err: any) => {
           this.games.set([]);
           this.isLoading.set(false);
-          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Nao foi possivel carregar os jogos.');
+          this.setFeedback('error', err?.error?.message ?? err?.message ?? 'Unable to load matches.');
         }
       });
   }
