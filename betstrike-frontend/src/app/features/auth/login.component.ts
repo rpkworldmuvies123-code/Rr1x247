@@ -42,7 +42,7 @@ export class LoginComponent {
           void this.router.navigate(destination);
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Nao foi possivel autenticar. Verifique os dados.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to sign in. Check your credentials.');
         }
       });
   }
