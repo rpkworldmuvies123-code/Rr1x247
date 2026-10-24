@@ -24,7 +24,7 @@
 
     @if (isLoading()) {
       <p role="status">Loading users...</p>
-    } @else if (hasUseres()) {
+    } @else if (hasUtilizadores()) {
       <div class="table-wrap">
         <table>
           <thead>
@@ -43,8 +43,8 @@
                   <strong>{{ u.NomeCompleto }}</strong>
                   <span class="email">{{ u.Email }}</span>
                 </td>
-                <td class="mono">{{ u.BalanceAtual | number:'1.2-2' }} EUR</td>
-                <td class="date-col">{{ u.DateRegistered | date:'dd/MM/yy HH:mm' }}</td>
+                <td class="mono">{{ u.SaldoAtual | number:'1.2-2' }} EUR</td>
+                <td class="date-col">{{ u.DataRegisto | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
                   @if (u.IsAdmin) {
                     <span class="badge badge-em-curso">Admin</span>
@@ -79,7 +79,7 @@
         <h2 id="adjust-dialog-title">Adjust balance</h2>
         <p class="dialog-user">
           <strong>{{ user.NomeCompleto }}</strong> — {{ user.Email }}<br />
-          Balance atual: <strong>{{ user.BalanceAtual | number:'1.2-2' }} EUR</strong>
+          Balance atual: <strong>{{ user.SaldoAtual | number:'1.2-2' }} EUR</strong>
         </p>
 
         <form [formGroup]="adjustForm" (ngSubmit)="adjustBalance()" novalidate>
@@ -129,10 +129,10 @@
                 <tr>
                   <td class="mono">#{{ entry.Id }}</td>
                   <td>{{ entry.AdminEmail }}</td>
-                  <td>{{ entry.UserEmail ?? '—' }}</td>
+                  <td>{{ entry.UtilizadorEmail ?? '—' }}</td>
                   <td><span class="acao-tag">{{ entry.Acao }}</span></td>
-                  <td class="detalhe">{{ entry.Details }}</td>
-                  <td class="date-col">{{ entry.DateHora | date:'dd/MM/yy HH:mm' }}</td>
+                  <td class="detalhe">{{ entry.Detalhe }}</td>
+                  <td class="date-col">{{ entry.DataHora | date:'dd/MM/yy HH:mm' }}</td>
                 </tr>
               }
             </tbody>
