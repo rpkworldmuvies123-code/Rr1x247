@@ -1,10 +1,13 @@
 <main class="page" aria-labelledby="register-title">
   <section class="card">
-    <img src="assets/completo.png" alt="BetStrike" id="register-title" class="card-logo" />
-    <p class="subtitle">Cria uma conta para comecares.</p>
+    <div class="auth-brand" id="register-title">
+      <span class="brand-mark" aria-hidden="true">RR</span>
+      <span>RR1X24</span>
+    </div>
+    <p class="subtitle">Create your account to get started.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="isSubmitting()">
-      <label for="nomeCompleto">Nome completo</label>
+      <label for="nomeCompleto">Full name</label>
       <input
         id="nomeCompleto"
         type="text"
@@ -14,7 +17,7 @@
         aria-describedby="nomeCompleto-error"
       />
       @if (form.controls.nomeCompleto.invalid && form.controls.nomeCompleto.touched) {
-        <p id="nomeCompleto-error" class="error" role="alert">Introduz o teu nome completo (minimo 2 caracteres).</p>
+        <p id="nomeCompleto-error" class="error" role="alert">Enter your full name (at least 2 characters).</p>
       }
 
       <label for="email">Email</label>
@@ -27,10 +30,10 @@
         aria-describedby="email-error"
       />
       @if (form.controls.email.invalid && form.controls.email.touched) {
-        <p id="email-error" class="error" role="alert">Introduz um email valido.</p>
+        <p id="email-error" class="error" role="alert">Enter a valid email address.</p>
       }
 
-      <label for="password">Palavra-passe</label>
+      <label for="password">Password</label>
       <input
         id="password"
         type="password"
@@ -40,10 +43,10 @@
         aria-describedby="password-error"
       />
       @if (form.controls.password.invalid && form.controls.password.touched) {
-        <p id="password-error" class="error" role="alert">Introduz a palavra-passe.</p>
+        <p id="password-error" class="error" role="alert">Enter a password.</p>
       }
 
-      <label for="passwordConfirm">Confirma palavra-passe</label>
+      <label for="passwordConfirm">Confirm password</label>
       <input
         id="passwordConfirm"
         type="password"
@@ -53,17 +56,17 @@
         aria-describedby="passwordConfirm-error"
       />
       @if (form.hasError('passwordMismatch') && form.controls.passwordConfirm.touched) {
-        <p id="passwordConfirm-error" class="error" role="alert">As palavras-passe nao correspondem.</p>
+        <p id="passwordConfirm-error" class="error" role="alert">Passwords do not match.</p>
       }
       @if (form.controls.passwordConfirm.invalid && form.controls.passwordConfirm.touched && !form.hasError('passwordMismatch')) {
-        <p id="passwordConfirm-error" class="error" role="alert">Confirma a palavra-passe.</p>
+        <p id="passwordConfirm-error" class="error" role="alert">Confirm your password.</p>
       }
 
       <button type="submit" [disabled]="isSubmitting()">
         @if (isSubmitting()) {
-          A registar...
+          Creating account...
         } @else {
-          Registar
+          Create account
         }
       </button>
 
@@ -73,8 +76,7 @@
     </form>
 
     <p class="auth-link">
-      Ja tem conta? <a routerLink="/login">Entrar</a>
+      Already have an account? <a routerLink="/login">Sign in</a>
     </p>
   </section>
 </main>
-
