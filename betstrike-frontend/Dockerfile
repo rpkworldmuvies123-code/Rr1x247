@@ -9,7 +9,7 @@ RUN npm run build -- --configuration production
 
 FROM nginx:1.27-alpine
 COPY nginx.docker.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist/betstrike-frontend/browser /usr/share/nginx/html
+COPY --from=build /app/dist/rr1x24-frontend/browser /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
