@@ -1,16 +1,16 @@
-BetStrike — Dashboards & Links Rápidos
+RR1X24 — Dashboards & Links Rápidos
 ======================================
 
 FRONTEND (Angular)
   http://localhost:4200
-  admin@betstrike.pt / Admin123!
+  admin@rr1x24.pt / CHANGE_ME_ADMIN_PASSWORD
 
 GERADORDADOS
   http://localhost:5300
 
 RABBITMQ UI
   http://localhost:15672
-  betstrike / DbauEVqKEmkn2Hk7
+  rr1x24 / DbauEVqKEmkn2Hk7
 
 ANALYTICS
   http://localhost:5400/api/analytics/resumo
