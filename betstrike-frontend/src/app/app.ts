@@ -20,7 +20,7 @@ export class App {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly document = inject(DOCUMENT);
-  private readonly themeStorageKey = 'betstrike.theme';
+  private readonly themeStorageKey = 'rr1x24.theme';
   private readonly balanceRefreshMs = 15_000;
 
   protected readonly isAuthenticated = computed(() => this.authService.isAuthenticated());
