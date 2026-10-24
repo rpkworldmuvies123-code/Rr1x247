@@ -104,7 +104,7 @@ app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 }));
 
 app.MapOpenApi();
-app.MapScalarApiReference(opts => opts.WithTitle("BetStrike — API Apostas"));
+app.MapScalarApiReference(opts => opts.WithTitle("RR1X24 — API Apostas"));
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -145,8 +145,8 @@ await using (var scope = app.Services.CreateAsyncScope())
             await roleManager.CreateAsync(new IdentityRole(role));
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminEmail = app.Configuration["Admin:Email"] ?? "admin@betstrike.pt";
-    var adminPassword = app.Configuration["Admin:Password"] ?? "Admin123!";
+    var adminEmail = app.Configuration["Admin:Email"] ?? "admin@rr1x24.pt";
+    var adminPassword = app.Configuration["Admin:Password"] ?? "CHANGE_ME_ADMIN_PASSWORD";
 
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {
@@ -154,7 +154,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         {
             UserName = adminEmail,
             Email = adminEmail,
-            NomeCompleto = "Administrador BetStrike",
+            NomeCompleto = "Administrador RR1X24",
             DataRegisto = DateTime.UtcNow
         };
         var result = await userManager.CreateAsync(admin, adminPassword);
