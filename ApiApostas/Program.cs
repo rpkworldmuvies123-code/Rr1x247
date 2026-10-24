@@ -145,7 +145,7 @@ await using (var scope = app.Services.CreateAsyncScope())
             await roleManager.CreateAsync(new IdentityRole(role));
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminEmail = app.Configuration["Admin:Email"] ?? "admin@rr1x24.pt";
+    var adminEmail = app.Configuration["Admin:Email"] ?? "admin@rr1x24.example";
     var adminPassword = app.Configuration["Admin:Password"] ?? "CHANGE_ME_ADMIN_PASSWORD";
 
     if (await userManager.FindByEmailAsync(adminEmail) == null)
