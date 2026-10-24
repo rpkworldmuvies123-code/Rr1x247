@@ -67,7 +67,7 @@ export class RegisterComponent {
           void this.router.navigate(destination);
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Nao foi possivel registar. Tente novamente.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to create account. Please try again.');
         }
       });
   }
