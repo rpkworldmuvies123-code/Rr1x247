@@ -8,11 +8,11 @@
   --text-muted: #a7b5bf;
   --line: #2a3b48;
   --line-strong: #3b5262;
-  --primary: #e9b73f;
-  --primary-strong: #f5c754;
+  --primary: #f5c754;
+  --primary-strong: #ffd76a;
   --primary-soft: rgb(245 199 84 / 16%);
-  --link: #f5c754;
-  --link-hover: #ffdf83;
+  --link: #ffd76a;
+  --link-hover: #fff0bd;
   --danger-soft: rgb(255 143 143 / 16%);
   --danger-text: #ff9b9b;
   --error-text: #ff9b9b;
