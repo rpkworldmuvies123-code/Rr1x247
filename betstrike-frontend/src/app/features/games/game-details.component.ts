@@ -37,7 +37,7 @@ export class GameDetailsComponent {
           this.isLoading.set(true);
 
           if (!codigoJogo) {
-            this.errorMessage.set('Código do jogo não encontrado.');
+            this.errorMessage.set('Match code not found.');
             this.isLoading.set(false);
             return of(null);
           }
@@ -55,7 +55,7 @@ export class GameDetailsComponent {
           this.isLoading.set(false);
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar o jogo.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to load match.');
           this.isLoading.set(false);
         }
       });
