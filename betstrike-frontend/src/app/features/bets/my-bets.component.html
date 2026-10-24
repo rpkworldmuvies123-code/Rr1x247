@@ -2,14 +2,14 @@
   <section class="panel">
     <div class="header-row">
       <div>
-        <h1 id="my-bets-title">Minhas apostas</h1>
-        <p class="subtitle"><a [routerLink]="['/games']">&larr; Ver jogos</a></p>
+        <h1 id="my-bets-title">My Bets</h1>
+        <p class="subtitle"><a [routerLink]="['/games']">&larr; Browse matches</a></p>
       </div>
-      <button type="button" (click)="refresh()" [disabled]="isLoading()">Atualizar</button>
+      <button type="button" (click)="refresh()" [disabled]="isLoading()">Refresh</button>
     </div>
 
     @if (isLoading()) {
-      <p role="status" aria-live="polite">A carregar apostas...</p>
+      <p role="status" aria-live="polite">Loading bets...</p>
     }
 
     @if (errorMessage()) {
@@ -26,13 +26,13 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Jogo</th>
-              <th>Mercado</th>
-              <th>Montante</th>
+              <th>Match</th>
+              <th>Market</th>
+              <th>Stake</th>
               <th>Odd</th>
-              <th>Prémio</th>
-              <th>Estado</th>
-              <th>Registo</th>
+              <th>Potential payout</th>
+              <th>Status</th>
+              <th>Placed at</th>
               <th></th>
             </tr>
           </thead>
@@ -41,17 +41,17 @@
               <tr [class.row-ganhou]="bet.estado === 2" [class.row-perdeu]="bet.estado === 3">
                 <td class="mono">#{{ bet.id }}</td>
                 <td>
-                  <a [routerLink]="['/games', bet.codigoJogo]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
-                  <span class="bet-code">{{ bet.codigoJogo }}</span>
+                  <a [routerLink]="['/games', bet.codigoMatch]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
+                  <span class="bet-code">{{ bet.codigoMatch }}</span>
                 </td>
                 <td><strong>{{ bet.tipoAposta }}</strong></td>
                 <td class="mono">{{ bet.montanteApostado | number:'1.2-2' }} €</td>
                 <td class="mono">× {{ bet.oddMomento | number:'1.2-2' }}</td>
                 <td class="mono prize-col">{{ bet.premioPotencial | number:'1.2-2' }} €</td>
                 <td>
-                  <span class="badge badge-{{ betEstadoClass(bet.estado) }}">{{ estadoLabel(bet.estado) }}</span>
+                  <span class="badge badge-{{ betStatusClass(bet.estado) }}">{{ estadoLabel(bet.estado) }}</span>
                 </td>
-                <td class="date-col">{{ bet.dataHoraRegisto | date:'dd/MM/yy HH:mm' }}</td>
+                <td class="date-col">{{ bet.dataHoraPlaced at | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
                   @if (canCancel(bet)) {
                     <button
@@ -60,7 +60,7 @@
                       (click)="cancelBet(bet)"
                       [disabled]="cancelingBetId() === bet.id"
                     >
-                      @if (cancelingBetId() === bet.id) { A cancelar... } @else { Cancelar }
+                      @if (cancelingBetId() === bet.id) { Cancelling... } @else { Cancel }
                     </button>
                   }
                 </td>
@@ -70,7 +70,7 @@
         </table>
       </div>
     } @else if (!isLoading()) {
-      <p class="empty">Sem apostas registadas.</p>
+      <p class="empty">No bets recorded.</p>
     }
   </section>
 </main>
