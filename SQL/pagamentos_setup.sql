@@ -3,16 +3,16 @@
 USE [master];
 GO
 
-IF DB_ID(N'betstrike-pagamentos') IS NULL
+IF DB_ID(N'rr1x24-pagamentos') IS NULL
 BEGIN
-    CREATE DATABASE [betstrike-pagamentos];
-    PRINT 'database betstrike-pagamentos criada.';
+    CREATE DATABASE [rr1x24-pagamentos];
+    PRINT 'database rr1x24-pagamentos criada.';
 END
 ELSE
-    PRINT 'database betstrike-pagamentos ja existe.';
+    PRINT 'database rr1x24-pagamentos ja existe.';
 GO
 
-USE [betstrike-pagamentos];
+USE [rr1x24-pagamentos];
 GO
 
 -- ================================================================
@@ -54,7 +54,7 @@ BEGIN TRY
     ELSE PRINT 'tabela Transacoes ja existe.';
 
     COMMIT TRAN;
-    PRINT 'schema betstrike-pagamentos validado.';
+    PRINT 'schema rr1x24-pagamentos validado.';
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK TRAN;
@@ -212,7 +212,7 @@ BEGIN
     IF USER_ID('pagamentos') IS NULL
     BEGIN
         CREATE USER [pagamentos] FOR LOGIN [pagamentos];
-        PRINT 'utilizador pagamentos criado em betstrike-pagamentos.';
+        PRINT 'utilizador pagamentos criado em rr1x24-pagamentos.';
     END
     ELSE
         PRINT 'utilizador pagamentos ja existe.';
