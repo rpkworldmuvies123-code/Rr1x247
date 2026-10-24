@@ -1,10 +1,10 @@
 <main class="page" aria-labelledby="bet-title">
   <section class="panel">
-    <a [routerLink]="['/games', codigoJogo() ?? '']">&larr; Voltar ao jogo</a>
+    <a [routerLink]="['/games', codigoJogo() ?? '']">&larr; Back to match</a>
 
-    <p class="eyebrow">Mercado clássico 1X2</p>
-    <h1 id="bet-title">Faz a tua aposta</h1>
-    <p class="lead">Apostas resolvidas com base no resultado final dos 90 minutos.</p>
+    <p class="eyebrow">1X2 market</p>
+    <h1 id="bet-title">Place your bet</h1>
+    <p class="lead">Bets are settled based on the final 90-minute result.</p>
 
     @if (isLoading()) {
       <div class="loading-skeleton" role="status" aria-live="polite">
@@ -18,7 +18,7 @@
     }
 
     @if (!isLoading() && !game()) {
-      <p class="notice" role="alert">{{ errorMessage() || 'Jogo não encontrado.' }}</p>
+      <p class="notice" role="alert">{{ errorMessage() || 'Match not found.' }}</p>
     }
 
     @if (game(); as g) {
@@ -36,27 +36,27 @@
 
         <dl class="details-grid">
           <div>
-            <dt>Competição</dt>
+            <dt>Competition</dt>
             <dd>{{ g.competition }}</dd>
           </div>
           <div>
-            <dt>Data</dt>
+            <dt>Date</dt>
             <dd>{{ g.startTime | date:'dd/MM/yyyy' }}</dd>
           </div>
           <div>
-            <dt>Hora</dt>
+            <dt>Time</dt>
             <dd>{{ g.startTime | date:'HH:mm' }}</dd>
           </div>
         </dl>
 
         <div class="balance-row">
           <span class="balance-display">
-            <span class="balance-label">Saldo disponível</span>
+            <span class="balance-label">Available balance</span>
             <strong class="balance-value">
               @if (walletBalance() !== null) {
                 {{ walletBalance()!.toFixed(2) }} EUR
               } @else {
-                <span class="muted">Indisponível</span>
+                <span class="muted">Unavailable</span>
               }
             </strong>
           </span>
@@ -65,17 +65,17 @@
 
       @if (canBet()) {
         <section class="bet-card" aria-labelledby="bet-options-title">
-          <h2 id="bet-options-title">Seleciona o teu mercado</h2>
+          <h2 id="bet-options-title">Select a market</h2>
 
           <form [formGroup]="betForm" (ngSubmit)="placeBet()" novalidate>
-            <div class="options-group" role="group" aria-label="Mercado de aposta">
+            <div class="options-group" role="group" aria-label="Betting market">
               @for (option of betOptions; track option) {
                 <label class="option-row" [class.selected]="betForm.controls.outcome.value === option">
                   <input type="radio" [value]="option" formControlName="outcome" />
                   <span class="market-code">{{ option }}</span>
                   <span class="market-label">{{ betMarketLabels[option] }}</span>
                   @if (isOddsLoading()) {
-                    <span class="market-odd odds-shimmer" aria-label="A carregar odd"></span>
+                    <span class="market-odd odds-shimmer" aria-label="Loading odds"></span>
                   } @else if (oddForOutcome(option); as o) {
                     <span class="market-odd">× {{ o.toFixed(2) }}</span>
                   } @else {
@@ -86,7 +86,7 @@
             </div>
 
             <div class="stake-row">
-              <label for="amount">Montante</label>
+              <label for="amount">Stake</label>
               <div class="stake-input-wrap">
                 <input id="amount" type="number" step="0.01" min="0.01" formControlName="amount" />
                 <span class="stake-currency">EUR</span>
@@ -95,13 +95,13 @@
 
             @if (prizePreview(); as prize) {
               <div class="prize-preview">
-                <span class="prize-label">Prémio potencial</span>
+                <span class="prize-label">Potential payout</span>
                 <strong class="prize-value">{{ prize.toFixed(2) }} EUR</strong>
               </div>
             }
 
             <button type="submit" class="submit-btn" [disabled]="isSubmittingBet()">
-              @if (isSubmittingBet()) { A registar aposta... } @else { Confirmar aposta }
+              @if (isSubmittingBet()) { Placing bet... } @else { Place bet }
             </button>
           </form>
         </section>
@@ -110,10 +110,10 @@
           <span class="badge badge-{{ stateClass() }}">{{ stateLabel() }}</span>
           <p class="not-bettable-msg">
             @switch (g.estado) {
-              @case (3) { Jogo finalizado — apostas encerradas. }
-              @case (4) { Jogo cancelado — apostas pendentes foram anuladas e reembolsadas. }
-              @case (5) { Jogo adiado — apostas pendentes foram anuladas e reembolsadas. }
-              @default { Apostas não disponíveis neste momento. }
+              @case (3) { Match finished — betting closed. }
+              @case (4) { Match cancelled — pending bets were voided and refunded. }
+              @case (5) { Match postponed — pending bets were voided and refunded. }
+              @default { Betting is unavailable right now. }
             }
           </p>
         </div>
