@@ -1,14 +1,17 @@
-<a class="skip-link" href="#main-content">Saltar para conteúdo principal</a>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
 <header class="topbar" [class.admin-mode]="isAdminMode()">
-  <img src="assets/txt.png" alt="BetStrike" class="brand" />
+  <a class="brand-link" routerLink="/games" aria-label="RR1X24 home">
+    <span class="brand-mark" aria-hidden="true">RR</span>
+    <span class="brand-name">RR1X24</span>
+  </a>
 
   <button
     type="button"
     class="theme-btn"
     [attr.aria-pressed]="isLightMode()"
-    [attr.aria-label]="isLightMode() ? 'Mudar para modo escuro' : 'Mudar para modo claro'"
-    [attr.title]="isLightMode() ? 'Mudar para modo escuro' : 'Mudar para modo claro'"
+    [attr.aria-label]="isLightMode() ? 'Switch to dark mode' : 'Switch to light mode'"
+    [attr.title]="isLightMode() ? 'Switch to dark mode' : 'Switch to light mode'"
     (click)="toggleTheme()"
   >
     @if (isLightMode()) {
@@ -33,27 +36,26 @@
   </button>
 
   @if (isAuthenticated()) {
-
     <div class="session">
-      <nav aria-label="Navegacao principal autenticada">
-        <a class="nav-link" [routerLink]="['/games']">Jogos</a>
-        <a class="nav-link" [routerLink]="['/bets']">Minhas apostas</a>
+      <nav aria-label="Main navigation">
+        <a class="nav-link" [routerLink]="['/games']">Matches</a>
+        <a class="nav-link" [routerLink]="['/bets']">My Bets</a>
         @if (isAdmin()) {
-          <a class="nav-link" [routerLink]="['/admin/games']">Admin jogos</a>
-          <a class="nav-link" [routerLink]="['/admin/users']">Admin users</a>
+          <a class="nav-link" [routerLink]="['/admin/games']">Admin Matches</a>
+          <a class="nav-link" [routerLink]="['/admin/users']">Admin Users</a>
           <a class="nav-link" [routerLink]="['/admin/analytics']">Analytics</a>
         }
       </nav>
       <span class="user-name">{{ username() }}</span>
       <span class="balance-chip" aria-live="polite">
-        Saldo:
+        Balance:
         @if (isBalanceLoading()) {
           <span class="balance-value">...</span>
         } @else {
           <span class="balance-value">{{ balanceLabel() }}</span>
         }
       </span>
-      <button type="button" class="logout-btn" (click)="logout()">Terminar sessão</button>
+      <button type="button" class="logout-btn" (click)="logout()">Log out</button>
     </div>
   }
 </header>
