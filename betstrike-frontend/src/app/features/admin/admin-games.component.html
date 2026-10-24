@@ -1,6 +1,9 @@
 <main class="page" aria-labelledby="admin-title">
   <section class="panel">
-    <h1 id="admin-title">Gestao de Jogos</h1>
+    <div class="page-heading">
+      <p class="eyebrow">RR1X24 CONTROL CENTER</p>
+      <h1 id="admin-title">Manage Matches</h1>
+    </div>
 
     @if (feedbackMessage()) {
       <p [class]="feedbackType() === 'error' ? 'feedback error' : 'feedback success'" role="status" aria-live="polite">
@@ -9,32 +12,26 @@
     }
 
     <section class="add-section" aria-labelledby="create-game-title">
-      <h2 id="create-game-title">Adicionar jogo</h2>
+      <h2 id="create-game-title">Add match</h2>
       <form [formGroup]="createForm" (ngSubmit)="createGame()" novalidate>
-        <label for="code">Codigo</label>
+        <label for="code">Match code</label>
         <input id="code" type="text" formControlName="code" />
-
-        <label for="homeTeam">Equipa da casa</label>
+        <label for="homeTeam">Home team</label>
         <input id="homeTeam" type="text" formControlName="homeTeam" />
-
-        <label for="awayTeam">Equipa visitante</label>
+        <label for="awayTeam">Away team</label>
         <input id="awayTeam" type="text" formControlName="awayTeam" />
-
-        <label for="competition">Competicao</label>
+        <label for="competition">Competition</label>
         <input id="competition" type="text" formControlName="competition" />
-
-        <label for="startTime">Data e hora</label>
+        <label for="startTime">Date and time</label>
         <input id="startTime" type="datetime-local" formControlName="startTime" />
-
-        <button type="submit">Criar jogo</button>
+        <button type="submit">Create match</button>
       </form>
     </section>
 
     <section class="list-section" aria-labelledby="games-list-title">
-      <h2 id="games-list-title">Lista de jogos</h2>
-
+      <h2 id="games-list-title">Match list</h2>
       @if (isLoading()) {
-        <p role="status" aria-live="polite">A carregar jogos...</p>
+        <p role="status" aria-live="polite">Loading matches...</p>
       } @else if (hasGames()) {
         <ul class="games-list">
           @for (game of games(); track game.id) {
@@ -42,70 +39,43 @@
               <div class="game-meta">
                 <p class="teams">{{ game.homeTeam }} vs {{ game.awayTeam }}</p>
                 <p class="small">{{ game.code }} · {{ game.competition }}</p>
-                <p class="small">Estado: {{ statusLabel(game.status) }} · Marcador: {{ game.homeScore }}-{{ game.awayScore }}</p>
+                <p class="small">Status: {{ statusLabel(game.status) }} · Score: {{ game.homeScore }}-{{ game.awayScore }}</p>
               </div>
-
               <div class="actions">
-                <button
-                  type="button"
-                  class="edit-btn"
-                  [attr.aria-label]="'Editar jogo ' + game.code"
-                  (click)="openEditDialog(game)"
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  class="remove-btn"
-                  [disabled]="!canDelete(game)"
-                  [attr.aria-label]="'Remover jogo ' + game.code"
-                  (click)="deleteGame(game)"
-                >
-                  Remover
-                </button>
+                <button type="button" class="edit-btn" [attr.aria-label]="'Edit match ' + game.code" (click)="openEditDialog(game)">Edit</button>
+                <button type="button" class="remove-btn" [disabled]="!canDelete(game)" [attr.aria-label]="'Remove match ' + game.code" (click)="deleteGame(game)">Remove</button>
               </div>
             </li>
           }
         </ul>
       } @else {
-        <p>Sem jogos disponiveis.</p>
+        <p>No matches available.</p>
       }
     </section>
   </section>
 
   @if (isEditOpen() && editingGame(); as game) {
     <div class="edit-overlay" role="presentation" (click)="closeEditDialog()">
-      <section
-        class="edit-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-game-title"
-        (click)="$event.stopPropagation()"
-      >
-        <h2 id="edit-game-title">Editar jogo</h2>
+      <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-game-title" (click)="$event.stopPropagation()">
+        <h2 id="edit-game-title">Edit match</h2>
         <p class="small">{{ game.homeTeam }} vs {{ game.awayTeam }} · {{ game.code }}</p>
-
         <form [formGroup]="updateForm" (ngSubmit)="updateGame()" novalidate>
-          <label for="status">Estado</label>
+          <label for="status">Status</label>
           <select id="status" formControlName="status">
             @for (status of statusOptions; track status) {
               <option [value]="status">{{ statusLabel(status) }}</option>
             }
           </select>
-
-          <label for="homeScore">Golos casa</label>
+          <label for="homeScore">Home score</label>
           <input id="homeScore" type="number" min="0" formControlName="homeScore" />
-
-          <label for="awayScore">Golos visitante</label>
+          <label for="awayScore">Away score</label>
           <input id="awayScore" type="number" min="0" formControlName="awayScore" />
-
           <div class="dialog-actions">
-            <button type="submit" class="edit-btn">Guardar</button>
-            <button type="button" class="ghost-btn" (click)="closeEditDialog()">Cancelar</button>
+            <button type="submit" class="edit-btn">Save changes</button>
+            <button type="button" class="ghost-btn" (click)="closeEditDialog()">Cancel</button>
           </div>
         </form>
       </section>
     </div>
   }
 </main>
-
