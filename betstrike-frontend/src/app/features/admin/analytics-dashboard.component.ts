@@ -27,7 +27,7 @@ export class AnalyticsDashboardComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: data => { this.resumo.set(data); this.lastUpdate.set(new Date()); this.error.set(''); },
-      error: () => this.error.set('Não foi possível ligar ao AnalyticsService.'),
+      error: () => this.error.set('Unable to connect to AnalyticsService.'),
     });
 
     interval(10000).pipe(
