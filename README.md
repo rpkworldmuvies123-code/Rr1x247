@@ -1,58 +1,26 @@
-# BetStrike
+# RR1X24
 
-Plataforma fictícia de apostas desportivas desenvolvida no âmbito da UC de Integração de Sistemas (M/EI @ UTAD). Simula o ecossistema completo de uma casa de apostas portuguesa: geração de jogos da Primeira Liga, apostas em tempo real, pagamentos e analytics.
+RR1X24 is a sports platform codebase based on the upstream IS-BetStrike demonstration project.
 
-## Arquitetura
+> **Important:** The upstream project describes itself as a fictional sports-betting demonstration. Match data is simulated. This code is not confirmed production-ready for live sports data, real-money payments, or commercial betting.
 
-| Serviço | Porta | Descrição |
-|---|---|---|
-| GeradorDados | 5300 | Simula jogos e publica resultados |
-| ApiResultados | 5204 | Plataforma FPF; persiste na BD `betstrike-resultados` |
-| ApiApostas | 5141 | Plataforma BetStrike; persiste na BD `betstrike-apostas` |
-| ApiPagamentos | 5232 | Sistema de pagamentos; persiste na BD `betstrike-pagamentos` |
-| AnalyticsService | 5400 | Consumidor Kafka para alertas e estatísticas |
-| Frontend (Angular) | 4200 | SPA a consumir ApiApostas |
+## Stack
+- Angular frontend
+- .NET services
+- SQL Server
+- Docker Compose
+- Kafka and RabbitMQ
 
-## Requisitos
+## Run locally
+1. Install Docker and Docker Compose.
+2. Copy the example environment file: `cp .env.example .env`.
+3. Set strong, unique secrets and administrator credentials in `.env`.
+4. Start services: `docker compose up --build`.
+5. Open the frontend at the local port configured in `compose.yaml`.
 
-- Docker + Docker Compose
+Never commit a real `.env` file, passwords, API keys, payment secrets, or production credentials.
 
-## Configuração
+## Upstream
+Source repository: https://github.com/joaoesteves10/IS-BetStrike
 
-Copiar o ficheiro de exemplo e preencher os valores:
-
-```bash
-cp .env.example .env
-```
-
-| Variável | Descrição |
-|---|---|
-| `MSSQL_SA_PASSWORD` | Password do SA do SQL Server |
-| `RESULTADOS_DB_PASSWORD` | Password do utilizador `resultados` |
-| `RESULTADOS_API_KEY` | Chave de autenticação da ApiResultados (`X-API-Key`) |
-| `APOSTAS_DB_PASSWORD` | Password do utilizador `apostas` |
-| `JWT_SECRET` | Segredo JWT (mínimo 32 caracteres) |
-| `ADMIN_EMAIL` | Email da conta de administrador |
-| `ADMIN_PASSWORD` | Password da conta de administrador |
-| `PAGAMENTOS_DB_PASSWORD` | Password do utilizador `pagamentos` |
-| `PAGAMENTOS_INTERNAL_KEY` | Chave interna ApiApostas → ApiPagamentos |
-| `RABBITMQ_USER` | Utilizador RabbitMQ |
-| `RABBITMQ_PASSWORD` | Password RabbitMQ |
-
-Os restantes valores têm defaults funcionais no `.env.example`.
-
-## Arrancar
-
-```bash
-docker compose up
-
-# para rebuild forçado
-docker compose up --build
-```
-
-A BD é inicializada automaticamente pelo serviço `db-init` no primeiro arranque.
-
-## Documentação
-
-As APIs estão documentadas com Scalar em `/scalar`. Cada API tem também um ficheiro `.http` na respetiva pasta para testes com o REST Client da IDE.  
-O relatório do trabalho encontra-se na pasta `docs`.
+Check the upstream project's licence and comply with the laws and provider requirements in your jurisdiction before redistributing or deploying this software. No production betting/payment readiness is implied by this branding update.
