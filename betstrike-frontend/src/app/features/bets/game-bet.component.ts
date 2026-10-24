@@ -73,7 +73,7 @@ export class GameBetComponent {
 
           if (!id) {
             this.isLoading.set(false);
-            this.errorMessage.set('Código do jogo não encontrado.');
+            this.errorMessage.set('Match code not found.');
             return of(null);
           }
 
@@ -91,7 +91,7 @@ export class GameBetComponent {
           }
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível carregar o jogo.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to load match.');
           this.isLoading.set(false);
         }
       });
@@ -104,13 +104,13 @@ export class GameBetComponent {
     }
 
     if (!this.canBet()) {
-      this.errorMessage.set('Este jogo não aceita novas apostas no estado atual.');
+      this.errorMessage.set('This match is not accepting bets in its current state.');
       return;
     }
 
     const codigoJogo = this.codigoJogo();
     if (!codigoJogo) {
-      this.errorMessage.set('Código do jogo inválido.');
+      this.errorMessage.set('Invalid match code.');
       return;
     }
 
@@ -129,13 +129,13 @@ export class GameBetComponent {
           const odd = this.oddForOutcome(outcome);
           const prize = odd ? (amount * odd).toFixed(2) : '—';
           this.confirmationMessage.set(
-            `Aposta #${response.id} registada — ${this.betMarketLabels[outcome]} (odd ${odd?.toFixed(2) ?? '—'}) · prémio potencial ${prize} EUR.`
+            `Aposta #${response.id} placed — ${this.betMarketLabels[outcome]} (odd ${odd?.toFixed(2) ?? '—'}) · potential payout ${prize} EUR.`
           );
           this.loadBalance();
           this.isSubmittingBet.set(false);
         },
         error: (err: any) => {
-          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Não foi possível registar a aposta.');
+          this.errorMessage.set(err?.error?.message ?? err?.message ?? 'Unable to place bet.');
           this.isSubmittingBet.set(false);
         }
       });
