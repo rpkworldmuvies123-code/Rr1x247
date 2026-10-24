@@ -75,8 +75,8 @@
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-betstrike}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-betstrike123}"
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-rr1x24}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}}"
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
@@ -119,7 +119,7 @@
     environment:
       RESULTADOS_DB_HOST: "${RESULTADOS_DB_HOST:-mssql_db}"
       RESULTADOS_DB_PORT: "${RESULTADOS_DB_PORT:-1433}"
-      RESULTADOS_DB_NAME: "${RESULTADOS_DB_NAME:-betstrike-resultados}"
+      RESULTADOS_DB_NAME: "${RESULTADOS_DB_NAME:-rr1x24-resultados}"
       RESULTADOS_DB_USER: "${RESULTADOS_DB_USER:-resultados}"
       RESULTADOS_DB_PASSWORD: "${RESULTADOS_DB_PASSWORD}"
       RESULTADOS_API_KEY: "${RESULTADOS_API_KEY}"
@@ -147,11 +147,11 @@
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__Apostas: "Server=${APOSTAS_DB_HOST:-mssql_db},${APOSTAS_DB_PORT:-1433};Database=${APOSTAS_DB_NAME:-betstrike-apostas};User Id=${APOSTAS_DB_USER:-apostas};Password=${APOSTAS_DB_PASSWORD};TrustServerCertificate=True;"
+      ConnectionStrings__Apostas: "Server=${APOSTAS_DB_HOST:-mssql_db},${APOSTAS_DB_PORT:-1433};Database=${APOSTAS_DB_NAME:-rr1x24-apostas};User Id=${APOSTAS_DB_USER:-apostas};Password=${APOSTAS_DB_PASSWORD};TrustServerCertificate=True;"
       Jwt__Secret: "${JWT_SECRET}"
-      Jwt__Issuer: "betstrike-apostas"
-      Jwt__Audience: "betstrike-frontend"
-      Admin__Email: "${ADMIN_EMAIL:-admin@betstrike.pt}"
+      Jwt__Issuer: "rr1x24-apostas"
+      Jwt__Audience: "rr1x24-frontend"
+      Admin__Email: "${ADMIN_EMAIL:-admin@rr1x24.example}"
       Admin__Password: "${ADMIN_PASSWORD}"
       ApiResultados__BaseUrl: "http://apiresultados:8080"
       ApiPagamentos__BaseUrl: "http://apipagamentos:8080"
@@ -159,8 +159,8 @@
       Sincronizacao__IntervaloSegundos: "${APOSTAS_SYNC_INTERVALO:-5}"
       Kafka__BootstrapServers: "kafka:9092"
       RabbitMQ__Host: "rabbitmq"
-      RabbitMQ__User: "${RABBITMQ_USER:-betstrike}"
-      RabbitMQ__Password: "${RABBITMQ_PASSWORD:-betstrike123}"
+      RabbitMQ__User: "${RABBITMQ_USER:-rr1x24}"
+      RabbitMQ__Password: "${RABBITMQ_PASSWORD:-${RABBITMQ_PASSWORD:-CHANGE_ME_RABBITMQ_PASSWORD}}"
     ports:
       - "${APIAPOSTAS_PORT:-5141}:8080"
     networks:
@@ -191,7 +191,7 @@
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__Pagamentos: "Server=${PAGAMENTOS_DB_HOST:-mssql_db},${PAGAMENTOS_DB_PORT:-1433};Database=${PAGAMENTOS_DB_NAME:-betstrike-pagamentos};User Id=${PAGAMENTOS_DB_USER:-pagamentos};Password=${PAGAMENTOS_DB_PASSWORD};TrustServerCertificate=True;"
+      ConnectionStrings__Pagamentos: "Server=${PAGAMENTOS_DB_HOST:-mssql_db},${PAGAMENTOS_DB_PORT:-1433};Database=${PAGAMENTOS_DB_NAME:-rr1x24-pagamentos};User Id=${PAGAMENTOS_DB_USER:-pagamentos};Password=${PAGAMENTOS_DB_PASSWORD};TrustServerCertificate=True;"
       InternalKey: "${PAGAMENTOS_INTERNAL_KEY}"
     ports:
       - "${APIPAGAMENTOS_PORT:-5232}:8080"
@@ -240,9 +240,9 @@
     restart: unless-stopped
 
   frontend:
-    image: betstrike-frontend
+    image: rr1x24-frontend
     build:
-      context: ./betstrike-frontend
+      context: ./rr1x24-frontend
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-4200}:80"
