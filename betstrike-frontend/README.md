@@ -1,14 +1,5 @@
-# RR1X24 Frontend
+# RR1X24 frontend
 
-Angular single-page application for the RR1X24 sports platform.
+Angular frontend for the RR1X24 project. API routes are proxied according to `proxy.conf.json` in local development. The full stack uses .NET services, SQL Server, Docker Compose, Kafka and RabbitMQ. Match data is simulated by the upstream demonstration project.
 
-## Run locally
-1. Install a compatible Node.js runtime and npm.
-2. From this directory, run `npm ci`.
-3. Set the backend URL in `proxy.conf.json` for local development.
-4. Run `npm run start`.
-5. Open `http://localhost:4200`.
-
-For a production build, set `apiBaseUrl` in `src/environments/environment.production.ts` to your deployed backend and run `npm run build`.
-
-The upstream project uses simulated matches and is not verified for production real-money betting. Never put secrets in frontend code.
+Source project: https://github.com/joaoesteves10/IS-BetStrike
