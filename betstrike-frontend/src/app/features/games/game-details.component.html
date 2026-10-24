@@ -1,9 +1,9 @@
 <main class="page" aria-labelledby="details-title">
   <section class="panel">
-    <a [routerLink]="['/games']">&larr; Voltar para jogos</a>
+    <a [routerLink]="['/games']">&larr; Back to matches</a>
 
     @if (isLoading()) {
-      <p role="status" aria-live="polite">A carregar detalhes...</p>
+      <p role="status" aria-live="polite">Loading match details...</p>
     }
 
     @if (errorMessage()) {
@@ -14,32 +14,32 @@
       <h1 id="details-title">{{ g.homeTeam }} vs {{ g.awayTeam }}</h1>
       <p class="meta">{{ g.competition }} · {{ g.startTime | date:'dd/MM/yyyy HH:mm' }}</p>
       <p class="score">{{ g.homeScore }} – {{ g.awayScore }}</p>
-      <p><strong>Estado:</strong> <span class="badge badge-{{ statusClass() }}">{{ statusLabel() }}</span></p>
-      <p><strong>Código:</strong> {{ g.code }}</p>
+      <p><strong>Status:</strong> <span class="badge badge-{{ statusClass() }}">{{ statusLabel() }}</span></p>
+      <p><strong>Code:</strong> {{ g.code }}</p>
 
       @if (g.estado === 1 || g.estado === 2) {
-        <p><a [routerLink]="['/games', g.id, 'bet']">Apostar neste jogo</a></p>
+        <p><a [routerLink]="['/games', g.id, 'bet']">Open betting market</a></p>
       }
 
-      <h2>Resultado oficial</h2>
+      <h2>Official result</h2>
       @if (resultado(); as r) {
         <p>{{ r.EquipaCasa }} <strong>{{ r.GolosCasa }} – {{ r.GolosVisitante }}</strong> {{ r.EquipaFora }}</p>
       } @else {
-        <p class="muted">Sem resultado oficial registado.</p>
+        <p class="muted">No official result recorded.</p>
       }
 
-      <h2>Estatísticas de apostas</h2>
+      <h2>Betting statistics</h2>
       @if (estatisticas(); as s) {
         <ul class="stats-list">
-          <li>Total apostado: <strong>{{ s.TotalApostado | number:'1.2-2' }} EUR</strong></li>
-          <li>Total de apostas: <strong>{{ s.TotalApostas }}</strong></li>
-          <li>Casa / Empate / Fora: <strong>{{ s.Apostas1 }} / {{ s.ApostasX }} / {{ s.Apostas2 }}</strong></li>
-          <li>Pendentes / Ganhas / Perdidas / Anuladas:
+          <li>Total staked: <strong>{{ s.TotalApostado | number:'1.2-2' }} EUR</strong></li>
+          <li>Total bets: <strong>{{ s.TotalApostas }}</strong></li>
+          <li>Home / Draw / Away: <strong>{{ s.Apostas1 }} / {{ s.ApostasX }} / {{ s.Apostas2 }}</strong></li>
+          <li>Pending / Won / Lost / Voided:
             <strong>{{ s.ApostasPendentes }} / {{ s.ApostasGanhas }} / {{ s.ApostasPerdidas }} / {{ s.ApostasAnuladas }}</strong>
           </li>
         </ul>
       } @else {
-        <p class="muted">Sem estatísticas disponíveis.</p>
+        <p class="muted">No statistics available.</p>
       }
     }
   </section>
