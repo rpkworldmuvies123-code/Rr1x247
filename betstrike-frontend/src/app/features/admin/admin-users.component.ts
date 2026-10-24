@@ -78,7 +78,7 @@ export class AdminUsersComponent {
       .subscribe({
         next: (updated) => {
           const direction = valor > 0 ? 'credited' : 'debited';
-          this.setFeedback('success', `${Math.abs(valor).toFixed(2)} EUR ${direction} para ${user.Email}.`);
+          this.setFeedback('success', `${Math.abs(valor).toFixed(2)} EUR ${direction} for ${user.Email}.`);
           this.isAdjusting.set(false);
           this.adjustForm.reset({ valor: 0, motivo: '' });
           this.loadUtilizadores();
