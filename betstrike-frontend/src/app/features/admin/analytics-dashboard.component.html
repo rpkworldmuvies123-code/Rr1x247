@@ -46,21 +46,21 @@
           <table class="data-table">
             <thead><tr><th>Outcome</th><th>Won</th><th>Rate</th></tr></thead>
             <tbody>
-              <tr><td>1 — Casa</td><td>{{ tv.ganhou1 }}</td><td>{{ taxaVitoriaPercent(tv.ganhou1, tv.total) }}</td></tr>
-              <tr><td>X — Empate</td><td>{{ tv.ganhouX }}</td><td>{{ taxaVitoriaPercent(tv.ganhouX, tv.total) }}</td></tr>
-              <tr><td>2 — Fora</td><td>{{ tv.ganhou2 }}</td><td>{{ taxaVitoriaPercent(tv.ganhou2, tv.total) }}</td></tr>
-              <tr class="row-total"><td>Total resolvidas</td><td colspan="2">{{ tv.total }}</td></tr>
+              <tr><td>1 — Home</td><td>{{ tv.ganhou1 }}</td><td>{{ taxaVitoriaPercent(tv.ganhou1, tv.total) }}</td></tr>
+              <tr><td>X — Draw</td><td>{{ tv.ganhouX }}</td><td>{{ taxaVitoriaPercent(tv.ganhouX, tv.total) }}</td></tr>
+              <tr><td>2 — Away</td><td>{{ tv.ganhou2 }}</td><td>{{ taxaVitoriaPercent(tv.ganhou2, tv.total) }}</td></tr>
+              <tr class="row-total"><td>Total settled</td><td colspan="2">{{ tv.total }}</td></tr>
             </tbody>
           </table>
         </div>
 
         <div class="card">
-          <h2 class="card-title">Volume por competição</h2>
+          <h2 class="card-title">Volume by competition</h2>
           @if ((r.volumePorCompeticao | keyvalue).length === 0) {
-            <p class="empty">Sem dados ainda.</p>
+            <p class="empty">No data yet.</p>
           } @else {
             <table class="data-table">
-              <thead><tr><th>Competição</th><th>Volume</th></tr></thead>
+              <thead><tr><th>Competition</th><th>Volume</th></tr></thead>
               <tbody>
                 @for (entry of r.volumePorCompeticao | keyvalue; track entry.key) {
                   <tr>
@@ -74,12 +74,12 @@
         </div>
 
         <div class="card">
-          <h2 class="card-title">Exposição por jogo</h2>
+          <h2 class="card-title">Exposure by match</h2>
           @if ((r.exposicaoFinanceira | keyvalue).length === 0) {
-            <p class="empty">Sem exposição ativa.</p>
+            <p class="empty">No active exposure.</p>
           } @else {
             <table class="data-table">
-              <thead><tr><th>Jogo</th><th>Exposição</th></tr></thead>
+              <thead><tr><th>Match</th><th>Exposure</th></tr></thead>
               <tbody>
                 @for (entry of r.exposicaoFinanceira | keyvalue; track entry.key) {
                   <tr [class.row-warn]="entry.value > 500">
@@ -93,9 +93,9 @@
         </div>
 
         <div class="card card--full">
-          <h2 class="card-title">Alertas recentes</h2>
+          <h2 class="card-title">Recent alerts</h2>
           @if (alertas().length === 0) {
-            <p class="empty">Sem alertas.</p>
+            <p class="empty">No alerts.</p>
           } @else {
             <ul class="alertas-list">
               @for (a of alertas(); track a.timestamp) {
@@ -110,7 +110,7 @@
         </div>
       </div>
     } @else if (!error()) {
-      <p class="loading">A carregar métricas…</p>
+      <p class="loading">Loading metrics...</p>
     }
   </div>
 </div>
