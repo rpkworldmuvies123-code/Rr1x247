@@ -49,25 +49,25 @@ export interface UpdateGameRequest {
 }
 
 export const GAME_STATUS_LABEL: Record<GameStatus, string> = {
-  SCHEDULED: 'Agendado',
-  LIVE: 'Em Curso',
-  FINISHED: 'Finalizado',
-  CANCELLED: 'Cancelado',
-  POSTPONED: 'Adiado'
+  SCHEDULED: 'Scheduled',
+  LIVE: 'Live',
+  FINISHED: 'Finished',
+  CANCELLED: 'Cancelled',
+  POSTPONED: 'Postponed'
 };
 
 export const GAME_STATE_LABEL: Record<MatchState, string> = {
-  1: 'Agendado',
-  2: 'Em Curso',
-  3: 'Finalizado',
-  4: 'Cancelado',
-  5: 'Adiado'
+  1: 'Scheduled',
+  2: 'Live',
+  3: 'Finished',
+  4: 'Cancelled',
+  5: 'Postponed'
 };
 
 export const BET_MARKET_LABEL: Record<BetMarket, string> = {
-  '1': 'Vitória — casa',
-  X: 'Empate',
-  '2': 'Vitória — fora'
+  '1': 'Home win',
+  X: 'Draw',
+  '2': 'Away win'
 };
 
 export function estadoToGameStatus(estado: number): GameStatus {
@@ -81,7 +81,7 @@ export function estadoToGameStatus(estado: number): GameStatus {
 }
 
 export function estadoLabel(estado: number): string {
-  return (GAME_STATE_LABEL as Record<number, string>)[estado] ?? 'Desconhecido';
+  return (GAME_STATE_LABEL as Record<number, string>)[estado] ?? 'Unknown';
 }
 
 export function estadoClass(estado: number): string {
