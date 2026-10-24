@@ -41,7 +41,7 @@
               <tr [class.row-ganhou]="bet.estado === 2" [class.row-perdeu]="bet.estado === 3">
                 <td class="mono">#{{ bet.id }}</td>
                 <td>
-                  <a [routerLink]="['/games', bet.codigoMatch]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
+                  <a [routerLink]="['/games', bet.codigoJogo]">{{ bet.equipaCasa }} vs {{ bet.equipaFora }}</a>
                   <span class="bet-code">{{ bet.codigoMatch }}</span>
                 </td>
                 <td><strong>{{ bet.tipoAposta }}</strong></td>
@@ -49,9 +49,9 @@
                 <td class="mono">× {{ bet.oddMomento | number:'1.2-2' }}</td>
                 <td class="mono prize-col">{{ bet.premioPotencial | number:'1.2-2' }} €</td>
                 <td>
-                  <span class="badge badge-{{ betStatusClass(bet.estado) }}">{{ estadoLabel(bet.estado) }}</span>
+                  <span class="badge badge-{{ betEstadoClass(bet.estado) }}">{{ estadoLabel(bet.estado) }}</span>
                 </td>
-                <td class="date-col">{{ bet.dataHoraPlaced at | date:'dd/MM/yy HH:mm' }}</td>
+                <td class="date-col">{{ bet.dataHoraRegisto | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
                   @if (canCancel(bet)) {
                     <button
