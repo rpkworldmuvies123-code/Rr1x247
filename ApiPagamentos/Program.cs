@@ -26,7 +26,7 @@ app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 }));
 
 app.MapOpenApi();
-app.MapScalarApiReference(opts => opts.WithTitle("BetStrike — API Pagamentos"));
+app.MapScalarApiReference(opts => opts.WithTitle("RR1X24 — API Pagamentos"));
 
 // All routes require valid X-Internal-Key
 app.UseMiddleware<InternalKeyMiddleware>();
